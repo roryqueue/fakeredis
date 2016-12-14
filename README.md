@@ -1,6 +1,6 @@
-# Redets
+# redETS
 
-**TODO: Add description**
+**redETS recreates the Redis API using only native Erlang/Elixir features, especially [ETS](http://erlang.org/doc/man/ets.html#lookup_element-3)**
 
 ## Installation
 

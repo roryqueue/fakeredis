@@ -27,6 +27,8 @@ defmodule Redets do
       "PSETEX" -> psetex(conn, command_args)
       "GET" -> get(conn, command_args)
       "GETSET" -> getset(conn, command_args)
+      "EXPIRE" -> expire(conn, command_args)
+      "EXPIREAT" -> expireat(conn, command_args)
       _ -> raise ArgumentError, "Can't match command"
     end
   end
@@ -37,6 +39,8 @@ defmodule Redets do
   def psetex!(conn, command_args), do: command!(conn, ["PSETEX" | command_args])
   def get!(conn, command_args), do: command!(conn, ["GET" | command_args])
   def getset!(conn, command_args), do: command!(conn, ["GETSET" | command_args])
+  def expire!(conn, command_args), do: command!(conn, ["EXPIRE" | command_args])
+  def expireat!(conn, command_args), do: command!(conn, ["EXPIREAT" | command_args])
 
   def command!(conn, command) do
     case command(conn, command) do
@@ -77,7 +81,7 @@ defmodule Redets do
       "NX" in arg_keys ->
         # matching redis's API, we will return "OK" if the key is set
         # of nil if it is not
-        if :ets.insert_new(conn, {key, {ttl, value}}) do
+        if :ets.insert_new(conn, {key, {value, ttl}}) do
           "OK"
         else
           nil
@@ -88,19 +92,17 @@ defmodule Redets do
         if :ets.lookup(conn, key) === [] do
           nil
         else
-          :ets.insert(conn, {key, {ttl, value}})
+          :ets.insert(conn, {key, {value, ttl}})
           "OK"
         end
       true ->
-        :ets.insert(conn, {key, {ttl, value}})
+        :ets.insert(conn, {key, {value, ttl}})
         "OK"
     end
   end
 
-  def set(conn, command_args) do
-    [key | command_args] = command_args
-    [value | command_args] = command_args
-    extra_args = map_extra_args(command_args)
+  def set(conn, [key, value | remaining_args]) do
+    extra_args = map_extra_args(remaining_args)
     set(conn, key, value, extra_args)
   end
  
@@ -108,10 +110,7 @@ defmodule Redets do
   def setnx(conn, command_args), do: set(conn, command_args ++ ["NX"])
 
 
-  def set_with_exp(conn, command_args, exp_key \\ "EX") do
-    [key | command_args] = command_args
-    [exp_val | command_args] = command_args
-    [value | _remainder] = command_args
+  def set_with_exp(conn, [key, exp_val, value | _remainder], exp_key \\ "EX") do
     set(conn, [key, value, exp_key, exp_val])
   end
 
@@ -127,7 +126,7 @@ defmodule Redets do
     if value_list === [] do
       nil
     else
-      [value | _tail] = value_list
+      [{value, ttl} | _tail] = value_list
       value
     end
   end
@@ -137,6 +136,14 @@ defmodule Redets do
     return_val = get(conn, command_args)
     set(conn, command_args)
     return_val
+  end
+
+  def expire(conn, [key, ttl]) do
+    expireat(conn, [key, ttl + :os.system_time(:seconds)])
+  end
+
+  def expireat(conn, [key, expiry_time]) do
+    :ets.update_element(conn, key, {1, expiry_time * 1000})
   end
 
 end

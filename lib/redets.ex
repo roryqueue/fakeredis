@@ -35,6 +35,7 @@ defmodule Redets do
       "PTTL" -> pttl(conn, command_args)
       "EXISTS" -> exists(conn, command_args)
       "DEL" -> del(conn, command_args)
+      "PERSIST" -> persist(conn, command_args)
       _ -> raise ArgumentError, "Can't match command"
     end
   end
@@ -53,6 +54,7 @@ defmodule Redets do
   def pttl!(conn, command_args), do: command!(conn, ["PTTL" | command_args])
   def exists!(conn, command_args), do: command!(conn, ["EXISTS" | command_args])
   def del!(conn, command_args), do: command!(conn, ["DEL" | command_args])
+  def persist!(conn, command_args), do: command!(conn, ["PERSIST" | command_args])
 
   def command!(conn, command) do
     case command(conn, command) do
@@ -62,6 +64,7 @@ defmodule Redets do
         raise error
     end
   end
+
 
   defp map_extra_args(raw_args, mapped_args \\ %{}, _pending_key \\ nil)
   defp map_extra_args([], mapped_args, _pending_key), do: mapped_args
@@ -218,6 +221,13 @@ defmodule Redets do
     else
       del(conn, remaining_keys, counter)
     end
+  end
+
+
+  def persist(conn, [key | _tail]), do: persist(conn, key)
+
+  def persist(conn, key) do
+    :ets.update_element(conn, key, {1, nil})
   end
 
 end

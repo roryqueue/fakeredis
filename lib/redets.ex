@@ -26,7 +26,7 @@ defmodule Redets do
       "SETEX" -> setex(conn, command_args)
       "PSETEX" -> psetex(conn, command_args)
       "GET" -> get(conn, command_args)
-      "GETSET" -> get(conn, command_args)
+      "GETSET" -> getset(conn, command_args)
       _ -> raise ArgumentError, "Can't match command"
     end
   end

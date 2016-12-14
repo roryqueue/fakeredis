@@ -36,6 +36,7 @@ defmodule Redets do
       "EXISTS" -> exists(conn, command_args)
       "DEL" -> del(conn, command_args)
       "PERSIST" -> persist(conn, command_args)
+      "KEYS" -> keys(conn, command_args)
       _ -> raise ArgumentError, "Can't match command"
     end
   end
@@ -55,6 +56,7 @@ defmodule Redets do
   def exists!(conn, command_args), do: command!(conn, ["EXISTS" | command_args])
   def del!(conn, command_args), do: command!(conn, ["DEL" | command_args])
   def persist!(conn, command_args), do: command!(conn, ["PERSIST" | command_args])
+  def keys!(conn, command_args), do: command!(conn, ["KEYS" | command_args])
 
   def command!(conn, command) do
     case command(conn, command) do
@@ -228,6 +230,25 @@ defmodule Redets do
 
   def persist(conn, key) do
     :ets.update_element(conn, key, {1, nil})
+  end
+
+
+  defp keys(conn, keylist) do
+    next_key = :ets.next(conn)
+    if next_key === '$end_of_table' do
+      keylist
+    else
+      keys(conn, [next_key | keylist])
+    end
+  end
+
+  def keys(conn) do
+    first_key = :ets.first(conn)
+    if first_key === '$end_of_table' do
+      []
+    else
+      keys(conn, [first_key])
+    end
   end
 
 end

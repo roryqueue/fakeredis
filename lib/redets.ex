@@ -127,7 +127,11 @@ defmodule Redets do
       nil
     else
       [{value, ttl} | _tail] = value_list
-      value
+      if ttl < :os.system_time(:milli_seconds) do
+        nil
+      else
+        value
+      end
     end
   end
 
@@ -138,12 +142,36 @@ defmodule Redets do
     return_val
   end
 
+
   def expire(conn, [key, ttl]) do
     expireat(conn, [key, ttl + :os.system_time(:seconds)])
   end
 
   def expireat(conn, [key, expiry_time]) do
     :ets.update_element(conn, key, {1, expiry_time * 1000})
+  end
+
+
+  def ttl(conn, [key | _tail]), do: ttl(conn, key)
+
+  def ttl(conn, key) do
+    pttl(conn, key) / 1000
+  end
+
+  def pttl(conn, [key | _tail]), do: pttl(conn, key)
+
+  def pttl(conn, key) do
+    value_list = :ets.lookup(conn, key)
+    if value_list === [] do
+      -2
+    else
+      [{value, ttl} | _tail] = value_list
+      if is_nil(ttl) do
+        -1
+      else
+        ttl
+      end
+    end
   end
 
 end

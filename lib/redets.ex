@@ -71,17 +71,25 @@ defmodule Redets do
 
     cond do
       "NX" in arg_keys ->
-        :ets.insert_new(conn, {key, {ttl, value}})
+        # matching redis's API, we will return "OK" if the key is set
+        # of nil if it is not
+        if :ets.insert_new(conn, {key, {ttl, value}}) do
+          "OK"
+        else
+          nil
+        end
       "XX" in arg_keys ->
         # if the key is currently empty, lookup will return an empty list
         # so in the case of "XX" we don't want to set
         if :ets.lookup(conn, key) === [] do
-          false
+          nil
         else
           :ets.insert(conn, {key, {ttl, value}})
+          "OK"
         end
       true ->
         :ets.insert(conn, {key, {ttl, value}})
+        "OK"
     end
   end
 

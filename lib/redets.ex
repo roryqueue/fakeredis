@@ -103,22 +103,22 @@ defmodule Redets do
         # matching redis's API, we will return "OK" if the key is set
         # of nil if it is not
         if :ets.insert_new(conn, {key, {value, ttl}}) do
-          "OK"
+          {:ok, "OK"}
         else
-          nil
+          {:ok, nil}
         end
       "XX" in arg_keys ->
         # if the key is currently empty, lookup will return an empty list
         # so in the case of "XX" we don't want to set
         if :ets.lookup(conn, key) === [] do
-          nil
+          {:ok, nil}
         else
           :ets.insert(conn, {key, {value, ttl}})
-          "OK"
+          {:ok, "OK"}
         end
       true ->
         :ets.insert(conn, {key, {value, ttl}})
-        "OK"
+        {:ok, "OK"}
     end
   end
 
@@ -145,13 +145,13 @@ defmodule Redets do
   def get(conn, key) do
     value_list = :ets.lookup(conn, key)
     if value_list === [] do
-      nil
+      {:ok, nil}
     else
       [{value, ttl} | _tail] = value_list
       if ttl < :os.system_time(:milli_seconds) do
-        nil
+        {:ok, nil}
       else
-        value
+        {:ok, value}
       end
     end
   end
@@ -160,7 +160,7 @@ defmodule Redets do
   def getset(conn, command_args) do
     return_val = get(conn, command_args)
     set(conn, command_args)
-    return_val
+    {:ok, return_val}
   end
 
 
@@ -177,7 +177,7 @@ defmodule Redets do
   end
 
   def pexpireat(conn, [key, expiry_time]) do
-    :ets.update_element(conn, key, {1, expiry_time})
+    {:ok, :ets.update_element(conn, key, {1, expiry_time})}
   end
 
 
@@ -192,20 +192,20 @@ defmodule Redets do
   def pttl(conn, key) do
     value_list = :ets.lookup(conn, key)
     if value_list === [] do
-      -2
+      {:ok, -2}
     else
       [{value, ttl} | _tail] = value_list
       if is_nil(ttl) do
-        -1
+        {:ok, -1}
       else
-        ttl
+        {:ok, ttl}
       end
     end
   end
 
 
   def exists(conn, keys, counter \\ 0)
-  def exists(_conn, [], counter), do: counter
+  def exists(_conn, [], counter), do: {:ok, counter}
 
   def exists(conn, [next_key, remaining_keys], counter) do
     if :ets.member(conn, next_key) do
@@ -217,7 +217,7 @@ defmodule Redets do
 
 
   def del(conn, keys, counter \\ 0)
-  def del(_conn, [], counter), do: counter
+  def del(_conn, [], counter), do: {:ok, counter}
 
   def del(conn, [next_key, remaining_keys], counter) do
     key_exists = :ets.member(conn, next_key)
@@ -233,14 +233,14 @@ defmodule Redets do
   def persist(conn, [key | _tail]), do: persist(conn, key)
 
   def persist(conn, key) do
-    :ets.update_element(conn, key, {1, nil})
+    {:ok, :ets.update_element(conn, key, {1, nil})}
   end
 
 
   defp keys(conn, keylist) do
     next_key = :ets.next(conn)
     if next_key === '$end_of_table' do
-      keylist
+      {:ok, keylist}
     else
       keys(conn, [next_key | keylist])
     end
@@ -249,7 +249,7 @@ defmodule Redets do
   def keys(conn) do
     first_key = :ets.first(conn)
     if first_key === '$end_of_table' do
-      []
+      {:ok, []}
     else
       keys(conn, [first_key])
     end
@@ -264,7 +264,7 @@ defmodule Redets do
 
   def incrby(conn, [key, increment]) do
     setnx(conn, [key, 0])
-    :ets.update_counter(conn, key, {0, increment})
+    {:ok, :ets.update_counter(conn, key, {0, increment})}
   end
 
 end

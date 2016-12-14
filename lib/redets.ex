@@ -202,7 +202,7 @@ defmodule Redets do
   def exists(_conn, [], counter), do: counter
 
   def exists(conn, [next_key, remaining_keys], counter) do
-    if get(conn, next_key) do
+    if :ets.member(conn, next_key) do
       exists(conn, remaining_keys, counter + 1)
     else
       exists(conn, remaining_keys, counter)
@@ -214,9 +214,9 @@ defmodule Redets do
   def del(_conn, [], counter), do: counter
 
   def del(conn, [next_key, remaining_keys], counter) do
-    next_value = get(conn, next_key)
+    key_exists = :ets.member(conn, next_key)
     :ets.delete(conn, next_key)
-    if next_value do
+    if key_exists do
       del(conn, remaining_keys, counter + 1)
     else
       del(conn, remaining_keys, counter)

@@ -29,6 +29,8 @@ defmodule Redets do
       "GETSET" -> getset(conn, command_args)
       "EXPIRE" -> expire(conn, command_args)
       "EXPIREAT" -> expireat(conn, command_args)
+      "PEXPIRE" -> pexpire(conn, command_args)
+      "PEXPIREAT" -> pexpireat(conn, command_args)
       "TTL" -> ttl(conn, command_args)
       "PTTL" -> pttl(conn, command_args)
       _ -> raise ArgumentError, "Can't match command"
@@ -43,6 +45,8 @@ defmodule Redets do
   def getset!(conn, command_args), do: command!(conn, ["GETSET" | command_args])
   def expire!(conn, command_args), do: command!(conn, ["EXPIRE" | command_args])
   def expireat!(conn, command_args), do: command!(conn, ["EXPIREAT" | command_args])
+  def pexpire!(conn, command_args), do: command!(conn, ["PEXPIRE" | command_args])
+  def pexpireat!(conn, command_args), do: command!(conn, ["PEXPIREAT" | command_args])
   def ttl!(conn, command_args), do: command!(conn, ["TTL" | command_args])
   def pttl!(conn, command_args), do: command!(conn, ["PTTL" | command_args])
 
@@ -148,11 +152,19 @@ defmodule Redets do
 
 
   def expire(conn, [key, ttl]) do
-    expireat(conn, [key, ttl + :os.system_time(:seconds)])
+    pexpire(conn, [key, ttl * 1000])
   end
 
   def expireat(conn, [key, expiry_time]) do
-    :ets.update_element(conn, key, {1, expiry_time * 1000})
+    pexpireat(conn, [key, expiry_time * 1000])
+  end
+
+  def pexpire(conn, [key, ttl]) do
+    pexpireat(conn, [key, ttl + :os.system_time(:milli_seconds)])
+  end
+
+  def pexpireat(conn, [key, expiry_time]) do
+    :ets.update_element(conn, key, {1, expiry_time})
   end
 
 

@@ -37,6 +37,8 @@ defmodule Redets do
       "DEL" -> del(conn, command_args)
       "PERSIST" -> persist(conn, command_args)
       "KEYS" -> keys(conn, command_args)
+      "INCR" -> incr(conn, command_args)
+      "INCRBY" -> incrby(conn, command_args)
       _ -> raise ArgumentError, "Can't match command"
     end
   end
@@ -57,6 +59,8 @@ defmodule Redets do
   def del!(conn, command_args), do: command!(conn, ["DEL" | command_args])
   def persist!(conn, command_args), do: command!(conn, ["PERSIST" | command_args])
   def keys!(conn, command_args), do: command!(conn, ["KEYS" | command_args])
+  def incr!(conn, command_args), do: command!(conn, ["INCR" | command_args])
+  def incrby!(conn, command_args), do: command!(conn, ["INCRBY" | command_args])
 
   def command!(conn, command) do
     case command(conn, command) do
@@ -249,6 +253,18 @@ defmodule Redets do
     else
       keys(conn, [first_key])
     end
+  end
+
+
+  def incr(conn, [key | _tail]), do: incr(conn, key)
+
+  def incr(conn, key) do
+    incrby(conn, [key, 1])
+  end
+
+  def incrby(conn, [key, increment]) do
+    setnx(conn, [key, 0])
+    :ets.update_counter(conn, key, {0, increment})
   end
 
 end

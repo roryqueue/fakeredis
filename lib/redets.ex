@@ -33,6 +33,8 @@ defmodule Redets do
       "PEXPIREAT" -> pexpireat(conn, command_args)
       "TTL" -> ttl(conn, command_args)
       "PTTL" -> pttl(conn, command_args)
+      "EXISTS" -> exists(conn, command_args)
+      "DEL" -> del(conn, command_args)
       _ -> raise ArgumentError, "Can't match command"
     end
   end
@@ -49,6 +51,8 @@ defmodule Redets do
   def pexpireat!(conn, command_args), do: command!(conn, ["PEXPIREAT" | command_args])
   def ttl!(conn, command_args), do: command!(conn, ["TTL" | command_args])
   def pttl!(conn, command_args), do: command!(conn, ["PTTL" | command_args])
+  def exists!(conn, command_args), do: command!(conn, ["EXISTS" | command_args])
+  def del!(conn, command_args), do: command!(conn, ["DEL" | command_args])
 
   def command!(conn, command) do
     case command(conn, command) do
@@ -187,6 +191,32 @@ defmodule Redets do
       else
         ttl
       end
+    end
+  end
+
+
+  def exists(conn, keys, counter \\ 0)
+  def exists(_conn, [], counter), do: counter
+
+  def exists(conn, [next_key, remaining_keys], counter) do
+    if get(conn, next_key) do
+      exists(conn, remaining_keys, counter + 1)
+    else
+      exists(conn, remaining_keys, counter)
+    end
+  end
+
+
+  def del(conn, keys, counter \\ 0)
+  def del(_conn, [], counter), do: counter
+
+  def del(conn, [next_key, remaining_keys], counter) do
+    next_value = get(conn, next_key)
+    :ets.delete(conn, next_key)
+    if next_value do
+      del(conn, remaining_keys, counter + 1)
+    else
+      del(conn, remaining_keys, counter)
     end
   end
 

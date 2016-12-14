@@ -29,6 +29,8 @@ defmodule Redets do
       "GETSET" -> getset(conn, command_args)
       "EXPIRE" -> expire(conn, command_args)
       "EXPIREAT" -> expireat(conn, command_args)
+      "TTL" -> ttl(conn, command_args)
+      "PTTL" -> pttl(conn, command_args)
       _ -> raise ArgumentError, "Can't match command"
     end
   end
@@ -41,6 +43,8 @@ defmodule Redets do
   def getset!(conn, command_args), do: command!(conn, ["GETSET" | command_args])
   def expire!(conn, command_args), do: command!(conn, ["EXPIRE" | command_args])
   def expireat!(conn, command_args), do: command!(conn, ["EXPIREAT" | command_args])
+  def ttl!(conn, command_args), do: command!(conn, ["TTL" | command_args])
+  def pttl!(conn, command_args), do: command!(conn, ["PTTL" | command_args])
 
   def command!(conn, command) do
     case command(conn, command) do

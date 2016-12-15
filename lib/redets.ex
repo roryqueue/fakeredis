@@ -43,6 +43,8 @@ defmodule Redets do
       "DECRBY" -> decrby(conn, command_args)
       "STRLEN" -> strlen(conn, command_args)      
       "APPEND" -> append(conn, command_args)      
+      "GETRANGE" -> getrange(conn, command_args)      
+      "SETRANGE" -> setrange(conn, command_args)      
       _ -> raise ArgumentError, "Can't match command"
     end
   end
@@ -69,6 +71,8 @@ defmodule Redets do
   def decrby!(conn, command_args), do: command!(conn, ["DECRBY" | command_args])
   def strlen!(conn, command_args), do: command!(conn, ["STRLEN" | command_args])
   def append!(conn, command_args), do: command!(conn, ["APPEND" | command_args])
+  def getrange!(conn, command_args), do: command!(conn, ["GETRANGE" | command_args])
+  def setrange!(conn, command_args), do: command!(conn, ["SETRANGE" | command_args])
 
   def command!(conn, command) do
     case command(conn, command) do
@@ -131,13 +135,10 @@ defmodule Redets do
   end
 
   def set(conn, [key, value | remaining_args]) do
-    extra_args = map_extra_args(remaining_args)
-    set(conn, key, value, extra_args)
+    set(conn, key, value, map_extra_args(remaining_args))
   end
  
-
   def setnx(conn, command_args), do: set(conn, command_args ++ ["NX"])
-
 
   def set_with_exp(conn, [key, exp_val, value | _remainder], exp_key \\ "EX") do
     set(conn, [key, value, exp_key, exp_val])
@@ -324,6 +325,42 @@ defmodule Redets do
       else
         {initial_value, ttl} = result
         new_value = initial_value <> value
+        :ets.update_element(conn, key, {0, new_value})
+        {:ok, String.length(new_value)}
+      end
+    else
+      {status, result}
+    end
+  end
+
+  def getrange(conn, [key, start_index, end_index]) do
+    {status, result} = get(conn, key)
+    if status === :ok do
+      if is_nil(result) do
+        {:error, "Key is empty"}
+      else
+        {initial_value, ttl} = result
+        {:ok, String.slice(initial_value, start_index..end_index)}
+      end
+    else
+      {status, result}
+    end
+  end
+
+  def setrange(conn, [key, offset, addition]) do
+    {status, result} = get(conn, key)
+    if status === :ok do
+      if is_nil(result) do
+        set(conn, [key, String.pad_leading(addition, offset, <<0>>)])
+      else
+        {initial_value, ttl} = result
+        initial_length = String.length(initial_value)
+        new_value = if initial_length > offset do
+          String.slice(initial_value, 0..offset) <> addition
+        else
+          initial_value <>
+            String.pad_leading(addition, offset - initial_length, <<0>>)
+        end
         :ets.update_element(conn, key, {0, new_value})
         {:ok, String.length(new_value)}
       end

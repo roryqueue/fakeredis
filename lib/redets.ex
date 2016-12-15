@@ -39,6 +39,8 @@ defmodule Redets do
       "KEYS" -> keys(conn, command_args)
       "INCR" -> incr(conn, command_args)
       "INCRBY" -> incrby(conn, command_args)
+      "DECR" -> decr(conn, command_args)
+      "DECRBY" -> decrby(conn, command_args)
       _ -> raise ArgumentError, "Can't match command"
     end
   end
@@ -61,6 +63,8 @@ defmodule Redets do
   def keys!(conn, command_args), do: command!(conn, ["KEYS" | command_args])
   def incr!(conn, command_args), do: command!(conn, ["INCR" | command_args])
   def incrby!(conn, command_args), do: command!(conn, ["INCRBY" | command_args])
+  def decr!(conn, command_args), do: command!(conn, ["DECR" | command_args])
+  def decrby!(conn, command_args), do: command!(conn, ["DECRBY" | command_args])
 
   def command!(conn, command) do
     case command(conn, command) do
@@ -265,6 +269,17 @@ defmodule Redets do
   def incrby(conn, [key, increment]) do
     setnx(conn, [key, 0])
     {:ok, :ets.update_counter(conn, key, {0, increment})}
+  end
+
+
+  def decr(conn, [key | _tail]), do: decr(conn, key)
+
+  def decr(conn, key) do
+    decrby(conn, [key, 1])
+  end
+
+  def decrby(conn, [key, decrement]) do
+    incrby(conn, [key, -decrement])
   end
 
 end

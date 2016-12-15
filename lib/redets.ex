@@ -41,6 +41,8 @@ defmodule Redets do
       "INCRBY" -> incrby(conn, command_args)
       "DECR" -> decr(conn, command_args)
       "DECRBY" -> decrby(conn, command_args)
+      "STRLEN" -> strlen(conn, command_args)      
+      "APPEND" -> append(conn, command_args)      
       _ -> raise ArgumentError, "Can't match command"
     end
   end
@@ -65,6 +67,8 @@ defmodule Redets do
   def incrby!(conn, command_args), do: command!(conn, ["INCRBY" | command_args])
   def decr!(conn, command_args), do: command!(conn, ["DECR" | command_args])
   def decrby!(conn, command_args), do: command!(conn, ["DECRBY" | command_args])
+  def strlen!(conn, command_args), do: command!(conn, ["STRLEN" | command_args])
+  def append!(conn, command_args), do: command!(conn, ["APPEND" | command_args])
 
   def command!(conn, command) do
     case command(conn, command) do
@@ -296,6 +300,36 @@ defmodule Redets do
 
   def decrby(conn, [key, decrement]) do
     incrby(conn, [key, -decrement])
+  end
+
+
+  def strlen(conn, [key | _tail]), do: strlen(conn, key)
+
+  def strlen(conn, key) do
+    {status, value} = get(conn, key)
+    if status === :ok do
+      {status, if(is_nil(value), do: 0, else: String.length(value))}
+    else
+      {status, value}
+    end
+  end
+
+
+  def append(conn, [key, value]) do
+    {status, result} = get(conn, key)
+    if status === :ok do
+      if is_nil(value) do
+        :ets.insert(conn, {key, {value, nil}})
+        {:ok, String.length(value)}
+      else
+        {initial_value, ttl} = result
+        new_value = initial_value <> value
+        :ets.update_element(conn, key, {0, new_value})
+        {:ok, String.length(new_value)}
+      end
+    else
+      {status, result}
+    end
   end
 
 end

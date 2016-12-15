@@ -162,9 +162,17 @@ defmodule Redets do
 
 
   def getset(conn, command_args) do
-    return_val = get(conn, command_args)
-    set(conn, command_args)
-    {:ok, return_val}
+    {get_status, get_result} = get(conn, command_args)
+    if get_status === :ok do
+      {set_status, set_result} = set(conn, command_args)
+      if set_status == :ok do
+        {get_status, get_result}
+      else
+        {set_status, set_result}
+      end
+    else
+      {get_status, get_result}
+    end
   end
 
 
@@ -188,7 +196,12 @@ defmodule Redets do
   def ttl(conn, [key | _tail]), do: ttl(conn, key)
 
   def ttl(conn, key) do
-    pttl(conn, key) / 1000
+    {status, result} = pttl(conn, key)
+    if status === :ok do
+      {status, result}
+    else
+      {status, result / 1000}
+    end
   end
 
   def pttl(conn, [key | _tail]), do: pttl(conn, key)
@@ -267,10 +280,13 @@ defmodule Redets do
   end
 
   def incrby(conn, [key, increment]) do
-    setnx(conn, [key, 0])
-    {:ok, :ets.update_counter(conn, key, {0, increment})}
+    {status, result} = setnx(conn, [key, 0])
+    if status === :ok do
+      {:ok, :ets.update_counter(conn, key, {0, increment})}
+    else
+      {status, result}
+    end
   end
-
 
   def decr(conn, [key | _tail]), do: decr(conn, key)
 
@@ -283,3 +299,16 @@ defmodule Redets do
   end
 
 end
+
+
+
+
+
+
+
+
+
+
+
+
+

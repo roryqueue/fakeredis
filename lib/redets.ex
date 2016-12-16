@@ -25,6 +25,8 @@ defmodule Redets do
       "SETNX" -> setnx(conn, command_args)
       "SETEX" -> setex(conn, command_args)
       "PSETEX" -> psetex(conn, command_args)
+      "MSET" -> mset(conn, command_args)
+      "MSETNX" -> msetnx(conn, command_args)
       "GET" -> get(conn, command_args)
       "GETSET" -> getset(conn, command_args)
       "EXPIRE" -> expire(conn, command_args)
@@ -53,6 +55,8 @@ defmodule Redets do
   def setnx!(conn, command_args), do: command!(conn, ["SETNX" | command_args])
   def setex!(conn, command_args), do: command!(conn, ["SETEX" | command_args])
   def psetex!(conn, command_args), do: command!(conn, ["PSETEX" | command_args])
+  def mset!(conn, command_args), do: command!(conn, ["MSET" | command_args])
+  def msetnx!(conn, command_args), do: command!(conn, ["MSETNX" | command_args])
   def get!(conn, command_args), do: command!(conn, ["GET" | command_args])
   def getset!(conn, command_args), do: command!(conn, ["GETSET" | command_args])
   def expire!(conn, command_args), do: command!(conn, ["EXPIRE" | command_args])
@@ -146,6 +150,39 @@ defmodule Redets do
 
   def setex(conn, command_args), do: set_with_exp(conn, command_args, "EX")
   def psetex(conn, command_args), do: set_with_exp(conn, command_args, "PX")
+
+  def mset(conn, command_args, key \\ nil)
+  def mset(_conn, [], _key), do: {:ok, "OK"}
+
+  def mset(conn, [next_arg | remaining_args], key) do
+    if is_nil(key) do
+      mset(conn, remaining_args, next_arg)
+    else
+      {status, result} = set(conn, [key, next_arg])
+      if status === :ok do
+        mset(conn, remaining_args)
+      else
+        {status, result}
+      end
+    end
+  end
+
+  def msetnx(conn, command_args, return_val \\ true, key \\ nil)
+  def msetnx(_conn, [], return_val, _key), do: {:ok, return_val}
+
+  def msetnx(conn, [next_arg | remaining_args], return_val, key) do
+    if is_nil(key) do
+      msetnx(conn, remaining_args, return_val, next_arg)
+    else
+      {status, result} = setnx(conn, [key, next_arg])
+      if status === :ok do
+        updated_return_val = if(is_nil(result), do: false, else: return_val)
+        msetnx(conn, remaining_args, updated_return_val)
+      else
+        {status, result}
+      end
+    end
+  end
 
   # get only has one argument outside the reference to our redets instance (the key)
   # so we'll allow a one-element list for consistency but also the key itself

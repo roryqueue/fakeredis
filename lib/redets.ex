@@ -1,5 +1,34 @@
 defmodule Redets do
 
+  def command!(conn, command) do
+    case command(conn, command) do
+      {:ok, resp} ->
+        resp
+      {:error, error} ->
+        raise error
+      _ -> raise "Could not match command return to :ok or :errorsss"
+    end
+  end
+
+  Enum.each(
+    [
+      :set, :setnx, :setex, :psetex, :mset, :msetnx,
+      :get, :getset, :expire, :expireat, :pexpire,
+      :pexpireat, :ttl, :pttl, :exists, :del,
+      :persist, :keys, :incr, :incrby, :decr,
+      :decrby, :strlen, :append, :getrange, :setrange
+    ], fn(name) ->
+      commandified_name = name |> Atom.to_string |> String.upcase
+
+      def command(conn, [unquote(commandified_name) | command_args]) do
+        unquote(name)(conn, command_args)
+      end
+
+      def unquote(:"#{name}!")(conn, command_args) do
+        command!(conn, [unquote(commandified_name), command_args])
+      end
+    end
+  )
   defp random_name( length \\ 8 ) do
     :crypto.strong_rand_bytes(length)
     |> Base.url_encode64
@@ -16,75 +45,6 @@ defmodule Redets do
     |> Kernel.<>("_redets_table")
     |> String.to_atom
     |> :ets.new(options)
-  end
-
-
-  def command(conn, [ command_type | command_args ]) do
-    case String.upcase(command_type) do
-      "SET" -> set(conn, command_args)
-      "SETNX" -> setnx(conn, command_args)
-      "SETEX" -> setex(conn, command_args)
-      "PSETEX" -> psetex(conn, command_args)
-      "MSET" -> mset(conn, command_args)
-      "MSETNX" -> msetnx(conn, command_args)
-      "GET" -> get(conn, command_args)
-      "GETSET" -> getset(conn, command_args)
-      "EXPIRE" -> expire(conn, command_args)
-      "EXPIREAT" -> expireat(conn, command_args)
-      "PEXPIRE" -> pexpire(conn, command_args)
-      "PEXPIREAT" -> pexpireat(conn, command_args)
-      "TTL" -> ttl(conn, command_args)
-      "PTTL" -> pttl(conn, command_args)
-      "EXISTS" -> exists(conn, command_args)
-      "DEL" -> del(conn, command_args)
-      "PERSIST" -> persist(conn, command_args)
-      "KEYS" -> keys(conn, command_args)
-      "INCR" -> incr(conn, command_args)
-      "INCRBY" -> incrby(conn, command_args)
-      "DECR" -> decr(conn, command_args)
-      "DECRBY" -> decrby(conn, command_args)
-      "STRLEN" -> strlen(conn, command_args)      
-      "APPEND" -> append(conn, command_args)      
-      "GETRANGE" -> getrange(conn, command_args)      
-      "SETRANGE" -> setrange(conn, command_args)      
-      _ -> raise ArgumentError, "Can't match command"
-    end
-  end
-
-  def set!(conn, command_args), do: command!(conn, ["SET" | command_args])
-  def setnx!(conn, command_args), do: command!(conn, ["SETNX" | command_args])
-  def setex!(conn, command_args), do: command!(conn, ["SETEX" | command_args])
-  def psetex!(conn, command_args), do: command!(conn, ["PSETEX" | command_args])
-  def mset!(conn, command_args), do: command!(conn, ["MSET" | command_args])
-  def msetnx!(conn, command_args), do: command!(conn, ["MSETNX" | command_args])
-  def get!(conn, command_args), do: command!(conn, ["GET" | command_args])
-  def getset!(conn, command_args), do: command!(conn, ["GETSET" | command_args])
-  def expire!(conn, command_args), do: command!(conn, ["EXPIRE" | command_args])
-  def expireat!(conn, command_args), do: command!(conn, ["EXPIREAT" | command_args])
-  def pexpire!(conn, command_args), do: command!(conn, ["PEXPIRE" | command_args])
-  def pexpireat!(conn, command_args), do: command!(conn, ["PEXPIREAT" | command_args])
-  def ttl!(conn, command_args), do: command!(conn, ["TTL" | command_args])
-  def pttl!(conn, command_args), do: command!(conn, ["PTTL" | command_args])
-  def exists!(conn, command_args), do: command!(conn, ["EXISTS" | command_args])
-  def del!(conn, command_args), do: command!(conn, ["DEL" | command_args])
-  def persist!(conn, command_args), do: command!(conn, ["PERSIST" | command_args])
-  def keys!(conn, command_args), do: command!(conn, ["KEYS" | command_args])
-  def incr!(conn, command_args), do: command!(conn, ["INCR" | command_args])
-  def incrby!(conn, command_args), do: command!(conn, ["INCRBY" | command_args])
-  def decr!(conn, command_args), do: command!(conn, ["DECR" | command_args])
-  def decrby!(conn, command_args), do: command!(conn, ["DECRBY" | command_args])
-  def strlen!(conn, command_args), do: command!(conn, ["STRLEN" | command_args])
-  def append!(conn, command_args), do: command!(conn, ["APPEND" | command_args])
-  def getrange!(conn, command_args), do: command!(conn, ["GETRANGE" | command_args])
-  def setrange!(conn, command_args), do: command!(conn, ["SETRANGE" | command_args])
-
-  def command!(conn, command) do
-    case command(conn, command) do
-      {:ok, resp} ->
-        resp
-      {:error, error} ->
-        raise error
-    end
   end
 
 
@@ -405,7 +365,6 @@ defmodule Redets do
       {status, result}
     end
   end
-
 end
 
 

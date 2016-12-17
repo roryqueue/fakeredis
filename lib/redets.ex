@@ -13,7 +13,7 @@ defmodule Redets do
   Enum.each(
     [
       :set, :setnx, :setex, :psetex, :mset, :msetnx,
-      :get, :getset, :expire, :expireat, :pexpire,
+      :get, :getset, :mget, :expire, :expireat, :pexpire,
       :pexpireat, :ttl, :pttl, :exists, :del,
       :persist, :keys, :incr, :incrby, :decr,
       :decrby, :strlen, :append, :getrange, :setrange
@@ -177,7 +177,19 @@ defmodule Redets do
     end
   end
 
+  def mget(conn, command_args, results \\ [])
+  def mget(_conn, [], results), do: {:ok, results}
 
+  def mget(conn, [next_arg | remaining_args], results) do
+    {status, result} = get(conn, next_arg)
+    if status === :ok do
+      mget(conn, remaining_args, [result | results])
+    else
+      {status, result}
+    end
+  end
+
+  
   def expire(conn, [key, ttl]) do
     pexpire(conn, [key, ttl * 1000])
   end

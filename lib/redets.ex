@@ -17,7 +17,8 @@ defmodule Redets do
       :pexpireat, :ttl, :pttl, :exists, :del,
       :persist, :keys, :incr, :incrby, :decr,
       :decrby, :strlen, :append, :getrange, :setrange,
-      :hget, :hgetall, :hmget
+      :hget, :hgetall, :hmget, :hkeys, :hvals, :hexists,
+      :hlen
     ], fn(name) ->
       commandified_name = name |> Atom.to_string |> String.upcase
 
@@ -425,6 +426,49 @@ defmodule Redets do
     {status, result} = get(conn, key)
     if status === :ok do
       hgetall(conn, to_untupled_list(result))
+    else
+      {status, result}
+    end
+  end
+
+
+  def hkeys(conn, [key | _tail]), do: hkeys(conn, key)
+
+  def hkeys(conn, key) do
+    {status, result} = get(conn, key)
+    if status === :ok do
+      {status, Map.keys(result)}
+    else
+      {status, result}
+    end
+  end
+
+  def hvals(conn, [key | _tail]), do: hvals(conn, key)
+
+  def hvals(conn, key) do
+    {status, result} = get(conn, key)
+    if status === :ok do
+      {status, Map.values(result)}
+    else
+      {status, result}
+    end
+  end
+
+  def hexists(conn, [hash_key, value_key]) do
+    {status, result} = hget(conn, [hash_key, value_key])
+    if status === :ok do
+      {status, !is_nil(result)}
+    else
+      {status, result}
+    end
+  end
+
+  def hlen(conn, [key | _tail]), do: hlen(conn, key)
+
+  def hlen(conn, key) do
+    {status, result} = get(conn, key)
+    if status === :ok do
+      {status, result |> Map.to_list |> length}
     else
       {status, result}
     end

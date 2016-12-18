@@ -18,7 +18,7 @@ defmodule Redets do
       :persist, :keys, :incr, :incrby, :decr,
       :decrby, :strlen, :append, :getrange, :setrange,
       :hget, :hgetall, :hmget, :hkeys, :hvals, :hexists,
-      :hlen, :hdel, :hset, :hsetnx
+      :hlen, :hdel, :hset, :hsetnx, :hincr
     ], fn(name) ->
       commandified_name = name |> Atom.to_string |> String.upcase
 
@@ -496,7 +496,7 @@ defmodule Redets do
       if is_nil(result) do
         {status, result}
       else
-        key_exists = Map.hash_key(result, element_key)
+        key_exists = Map.has_key?(result, element_key)
         unless key_exists and nx do
           updated_map = Map.put(result, element_key, element_value)
           :ets.update_element(conn, hash_key, {0, updated_map})
@@ -510,6 +510,22 @@ defmodule Redets do
 
   def hsetnx(conn, [hash_key, element_key, element_value]) do
     hset(conn, [hash_key, element_key, element_value], true)
+  end
+
+  def hincr(conn, [hash_key, element_key, increment]) do
+    {status, result} = get(conn, hash_key)
+    if status === :ok do
+      if is_nil(result) do
+        {status, result}
+      else
+          updated_value = Map.get(result, element_key, 0) + increment
+          updated_map = Map.put(result, element_key, updated_value)
+          :ets.update_element(conn, hash_key, {0, updated_map})
+        {status, updated_value}
+      end
+    else
+      {status, result}
+    end
   end
 
 end

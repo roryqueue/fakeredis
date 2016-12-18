@@ -18,7 +18,7 @@ defmodule Redets do
       :persist, :keys, :incr, :incrby, :decr,
       :decrby, :strlen, :append, :getrange, :setrange,
       :hget, :hgetall, :hmget, :hkeys, :hvals, :hexists,
-      :hlen
+      :hlen, :hdel, :hset, :hsetnx
     ], fn(name) ->
       commandified_name = name |> Atom.to_string |> String.upcase
 
@@ -395,10 +395,10 @@ defmodule Redets do
   end
 
 
-  def hget(conn, [hash_key, value_key]) do
+  def hget(conn, [hash_key, element_key]) do
     {status, result} = get(conn, hash_key)
     if status === :ok do
-      {status, result[value_key]}
+      {status, result[element_key]}
     else
       {status, result}
     end
@@ -454,8 +454,8 @@ defmodule Redets do
     end
   end
 
-  def hexists(conn, [hash_key, value_key]) do
-    {status, result} = hget(conn, [hash_key, value_key])
+  def hexists(conn, [hash_key, element_key]) do
+    {status, result} = hget(conn, [hash_key, element_key])
     if status === :ok do
       {status, !is_nil(result)}
     else
@@ -472,6 +472,44 @@ defmodule Redets do
     else
       {status, result}
     end
+  end
+
+  def hdel(conn, [hash_key, element_key]) do
+    {status, result} = get(conn, hash_key)
+    if status === :ok do
+      if is_nil(result) do
+        {status, result}
+      else
+        {element, remaining_map} = Map.pop(result, element_key)
+        :ets.update_element(conn, hash_key, {0, remaining_map})
+        {status, element}
+      end
+    else
+      {status, result}
+    end
+  end
+
+
+  def hset(conn, [hash_key, element_key, element_value], nx \\ false) do
+    {status, result} = get(conn, hash_key)
+    if status === :ok do
+      if is_nil(result) do
+        {status, result}
+      else
+        key_exists = Map.hash_key(result, element_key)
+        unless key_exists and nx do
+          updated_map = Map.put(result, element_key, element_value)
+          :ets.update_element(conn, hash_key, {0, updated_map})
+        end        
+        {status, !key_exists}
+      end
+    else
+      {status, result}
+    end
+  end
+
+  def hsetnx(conn, [hash_key, element_key, element_value]) do
+    hset(conn, [hash_key, element_key, element_value], true)
   end
 
 end

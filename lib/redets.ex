@@ -6,7 +6,7 @@ defmodule Redets do
         resp
       {:error, error} ->
         raise error
-      _ -> raise "Could not match command return to :ok or :errorsss"
+      _ -> raise "Could not match command return to :ok or :error"
     end
   end
 
@@ -29,6 +29,11 @@ defmodule Redets do
       end
     end
   )
+
+  def command(_conn, _command) do
+    raise "Could not match first word in command list to a redets command"
+  end
+
   defp random_name( length \\ 8 ) do
     :crypto.strong_rand_bytes(length)
     |> Base.url_encode64

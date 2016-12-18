@@ -170,6 +170,7 @@ defmodule Redets do
   end
 
 
+  # needs lock
   def getset(conn, command_args) do
     {get_status, get_result} = get(conn, command_args)
     if get_status === :ok do
@@ -300,6 +301,7 @@ defmodule Redets do
     incrby(conn, [key, 1])
   end
 
+  # needs lock
   def incrby(conn, [key, increment]) do
     {status, result} = setnx(conn, [key, 0])
     if status === :ok do
@@ -332,6 +334,7 @@ defmodule Redets do
   end
 
 
+  # needs lock
   def append(conn, [key, value]) do
     {status, result} = get(conn, key)
     if status === :ok do
@@ -363,6 +366,7 @@ defmodule Redets do
     end
   end
 
+  # needs lock
   def setrange(conn, [key, offset, addition]) do
     {status, result} = get(conn, key)
     if status === :ok do
@@ -474,6 +478,7 @@ defmodule Redets do
     end
   end
 
+  # needs lock
   def hdel(conn, [hash_key, element_key]) do
     {status, result} = get(conn, hash_key)
     if status === :ok do
@@ -489,7 +494,7 @@ defmodule Redets do
     end
   end
 
-
+  # needs lock
   def hset(conn, [hash_key, element_key, element_value], nx \\ false) do
     {status, result} = get(conn, hash_key)
     if status === :ok do
@@ -512,6 +517,7 @@ defmodule Redets do
     hset(conn, [hash_key, element_key, element_value], true)
   end
 
+  # needs lock
   def hincr(conn, [hash_key, element_key, increment]) do
     {status, result} = get(conn, hash_key)
     if status === :ok do

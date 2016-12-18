@@ -382,6 +382,53 @@ defmodule Redets do
       {status, result}
     end
   end
+
+
+  defp to_untupled_list(initial_map) when is_map(initial_map) do
+    initial_map |> Map.to_list |> to_untupled_list
+  end
+
+  defp to_untupled_list([{key, value} | tail], result \\ []) do
+    to_untupled_list(tail, [key, value | result])
+  end
+
+
+  def hget(conn, [hash_key, value_key]) do
+    {status, result} = get(conn, hash_key)
+    if status === :ok do
+      {status, result[value_key]}
+    else
+      {status, result}
+    end
+  end
+
+  defp hmget(conn, command_args, get_result, return_array \\ [])
+  defp hmget(_conn, [], _get_result, return_array), do: {:ok, return_array}
+
+  defp hmget(conn, [next_arg | remaining_args], get_result, return_array) do
+    hmget(conn, remaining_args, get_result, [get_result[next_arg] | return_array])
+  end
+
+  def hmget(conn, [next_arg | remaining_args]) do
+    {status, result} = get(conn, next_arg)
+    if status === :ok do
+      hmget(conn, remaining_args, result)
+    else
+      {status, result}
+    end
+  end
+
+  def hgetall(conn, [key | _tail]), do: hgetall(conn, key)
+
+  def hgetall(conn, key) do
+    {status, result} = get(conn, key)
+    if status === :ok do
+      hgetall(conn, to_untupled_list(result))
+    else
+      {status, result}
+    end
+  end
+
 end
 
 

@@ -16,7 +16,8 @@ defmodule Redets do
       :get, :getset, :mget, :expire, :expireat, :pexpire,
       :pexpireat, :ttl, :pttl, :exists, :del,
       :persist, :keys, :incr, :incrby, :decr,
-      :decrby, :strlen, :append, :getrange, :setrange
+      :decrby, :strlen, :append, :getrange, :setrange,
+      :hget, :hgetall, :hmget
     ], fn(name) ->
       commandified_name = name |> Atom.to_string |> String.upcase
 

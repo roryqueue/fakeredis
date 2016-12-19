@@ -538,6 +538,32 @@ defmodule Redets do
     end
   end
 
+
+  defp lpushall([], final_array), do: final_array
+
+  defp lpushall([next_value | remaining_values], target_array) do
+    target_array = if(is_nil(target_array), do: [], else: target_array)
+    lpushall(remaining_values, [next_value, target_array])
+  end
+
+  # needs lock
+  def lpush(conn, [key | values], xx \\ false) do
+    {status, result} = get(conn, key)
+    if status === :ok do
+      if xx and result === nil do
+        {status, 0}
+      else
+        updated_array = lpushall(values, result)
+        :ets.update_element(conn, key, {0, updated_array})
+        {status, length(updated_array)}
+      end
+    else
+      {status, result}
+    end
+  end
+
+  def lpushx(conn, command_args), do: lpush(conn, command_args, true)
+
 end
 
 

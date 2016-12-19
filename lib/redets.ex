@@ -564,6 +564,24 @@ defmodule Redets do
 
   def lpushx(conn, command_args), do: lpush(conn, command_args, true)
 
+  # needs lock
+  def rpush(conn, [key | values], xx \\ false) do
+    {status, result} = get(conn, key)
+    if status === :ok do
+      if xx and result === nil do
+        {status, 0}
+      else
+        updated_array = if(is_nil(result), do: [], else: result) ++ values
+        :ets.update_element(conn, key, {0, updated_array})
+        {status, length(updated_array)}
+      end
+    else
+      {status, result}
+    end
+  end
+
+  def rpushx(conn, command_args), do: rpush(conn, command_args, true)
+
 end
 
 

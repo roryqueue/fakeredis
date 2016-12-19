@@ -550,7 +550,7 @@ defmodule Redets do
   def lpush(conn, [key | values], xx \\ false) do
     {status, result} = get(conn, key)
     if status === :ok do
-      if xx and result === nil do
+      if xx and is_nil(result) do
         {status, 0}
       else
         updated_array = lpushall(values, result)
@@ -568,7 +568,7 @@ defmodule Redets do
   def rpush(conn, [key | values], xx \\ false) do
     {status, result} = get(conn, key)
     if status === :ok do
-      if xx and result === nil do
+      if xx and is_nil(result) do
         {status, 0}
       else
         updated_array = if(is_nil(result), do: [], else: result) ++ values
@@ -581,6 +581,37 @@ defmodule Redets do
   end
 
   def rpushx(conn, command_args), do: rpush(conn, command_args, true)
+
+
+  def llen(conn, [key | _tail]), do: llen(conn, key)
+
+  # needs lock
+  def llen(conn, key) do
+    {status, result} = get(conn, key)
+    if status === :ok do
+      {status, length(if(is_nil(result), do: [], else: result))}
+    else
+      {status, result}
+    end   
+  end
+
+  def lpop(conn, [key | _tail]), do: lpop(conn, key)
+
+  # needs lock
+  def lpop(conn, key) do
+    {status, result} = get(conn, key)
+    if status === :ok do
+      if is_nil(result) or result === [] do
+        {status, nil}
+      else
+        [return_val | updated_array] = result
+        :ets.update_element(conn, key, {0, updated_array})
+        {status, return_val}
+      end
+    else
+      {status, result}
+    end
+  end
 
 end
 

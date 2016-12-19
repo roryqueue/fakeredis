@@ -54,6 +54,8 @@ defmodule Redets do
     |> :ets.new(options)
   end
 
+  def end_link(conn_or_name), do: :ets.delete(conn_or_name)
+
 
   defp map_extra_args(raw_args, mapped_args \\ %{}, _pending_key \\ nil)
   defp map_extra_args([], mapped_args, _pending_key), do: mapped_args
@@ -162,6 +164,7 @@ defmodule Redets do
     else
       [{value, ttl} | _tail] = value_list
       if ttl < :os.system_time(:milli_seconds) do
+        :ets.delete(conn, key)
         {:ok, nil}
       else
         {:ok, value}
@@ -247,7 +250,8 @@ defmodule Redets do
   def exists(_conn, [], counter), do: {:ok, counter}
 
   def exists(conn, [next_key, remaining_keys], counter) do
-    if :ets.member(conn, next_key) do
+    {status, value} = get(conn, next_key)
+    if status === :ok and !is_nil(value) do
       exists(conn, remaining_keys, counter + 1)
     else
       exists(conn, remaining_keys, counter)

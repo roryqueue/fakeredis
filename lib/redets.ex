@@ -18,7 +18,9 @@ defmodule Redets do
       :persist, :keys, :incr, :incrby, :decr,
       :decrby, :strlen, :append, :getrange, :setrange,
       :hget, :hgetall, :hmget, :hkeys, :hvals, :hexists,
-      :hlen, :hdel, :hset, :hsetnx, :hincr
+      :hlen, :hdel, :hset, :hsetnx, :hincr,
+      :lpushall, :lpush, :lpushx, :rpush, :rpushx,
+      :llen, :lpop, :rpop, :rpoplpush, :lset
     ], fn(name) ->
       commandified_name = name |> Atom.to_string |> String.upcase
 
@@ -650,6 +652,17 @@ defmodule Redets do
     else
       {pop_status, pop_result}
     end
+  end
+
+
+  def lset(conn, [key, index, value]) do
+    {status, result} = get(conn, key)
+    if status === :ok do
+      :ets.update_element(conn, key, {0, List.replace_at(result, index, value)})
+      {status, "OK"}
+    else
+      {status, result}
+    end   
   end
 
 end

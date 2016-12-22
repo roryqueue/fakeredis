@@ -613,6 +613,45 @@ defmodule Redets do
     end
   end
 
+  def rpop(conn, [key | _tail]), do: rpop(conn, key)
+
+  # needs lock
+  def rpop(conn, key) do
+    {status, result} = get(conn, key)
+    if status === :ok do
+      if is_nil(result) or result === [] do
+        {status, nil}
+      else
+        # when elixir 1.4 is stable, use pop_at instead
+        last_item = Enum.at(result, -1)
+        :ets.update_element(conn, key, {0, List.delete_at(result, -1)})
+        {status, last_item}
+      end
+    else
+      {status, result}
+    end
+  end
+
+
+  # needs lock
+  def rpoplpush(conn, [pop_key, push_key]) do
+    {pop_status, pop_result} = rpop(conn, pop_key)
+    if pop_status === :ok do
+      if is_nil(pop_result) do
+        {pop_status, pop_result}
+      else
+        {push_status, push_result} = lpush(conn, [push_key, pop_result])
+        if push_status === :ok do
+          {:ok, pop_result}
+        else
+          {push_status, push_result}
+        end
+      end
+    else
+      {pop_status, pop_result}
+    end
+  end
+
 end
 
 

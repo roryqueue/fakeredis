@@ -20,7 +20,7 @@ defmodule Redets do
       :hget, :hgetall, :hmget, :hkeys, :hvals, :hexists,
       :hlen, :hdel, :hset, :hsetnx, :hincr,
       :lpushall, :lpush, :lpushx, :rpush, :rpushx,
-      :llen, :lpop, :rpop, :rpoplpush, :lset
+      :llen, :lpop, :rpop, :rpoplpush, :lset, :lrem
     ], fn(name) ->
       commandified_name = name |> Atom.to_string |> String.upcase
 
@@ -660,6 +660,45 @@ defmodule Redets do
     if status === :ok do
       :ets.update_element(conn, key, {0, List.replace_at(result, index, value)})
       {status, "OK"}
+    else
+      {status, result}
+    end   
+  end
+
+  def lrem(conn, [key, count, term]) do
+    {status, result} = get(conn, key)
+    if status === :ok do
+      if is_nil(result) do
+        {status, 0}
+      else
+        # for negative counts passed, we want to move from left to right
+        # so in that case we'll reverse the list before and after our filter
+        reverse_if_negcount = fn (lst, cnt) ->
+          if(cnt < 0, do: List.reverse(lst), else: lst)
+        end
+
+        starting_list = reverse_if_negcount.(result, count)
+        
+        {pared_list, return_count} = Enum.flat_map_reduce(
+          starting_list,
+          0,
+          fn (element, accumulator) ->
+            # if the count passed is zero, we want to iterate through
+            # the whole list, removing every match
+            # otherwise, we'll count down from the absolute value of our
+            # count and only remove matches before we hit zero
+            if (count === 0 or accumulator < abs(count)) and (element === term) do
+              {[], accumulator - 1}
+            else
+              {[element], accumulator}
+            end
+          end
+        )
+        final_list = reverse_if_negcount.(pared_list, count)
+
+        :ets.update_element(conn, key, {0, final_list})
+        {status, return_count}
+      end
     else
       {status, result}
     end   

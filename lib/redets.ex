@@ -20,7 +20,8 @@ defmodule Redets do
       :hget, :hgetall, :hmget, :hkeys, :hvals, :hexists,
       :hlen, :hdel, :hset, :hsetnx, :hincr,
       :lpushall, :lpush, :lpushx, :rpush, :rpushx,
-      :llen, :lpop, :rpop, :rpoplpush, :lset, :lrem
+      :llen, :lpop, :rpop, :rpoplpush, :lset,
+      :lindex, :linsert, :ltrim, :lrem
     ], fn(name) ->
       commandified_name = name |> Atom.to_string |> String.upcase
 
@@ -655,6 +656,7 @@ defmodule Redets do
   end
 
 
+  # needs lock
   def lset(conn, [key, index, value]) do
     {status, result} = get(conn, key)
     if status === :ok do
@@ -665,6 +667,47 @@ defmodule Redets do
     end   
   end
 
+
+  def lindex(conn, [key, index]) do
+    {status, result} = get(conn, key)
+    if status === :ok do
+      {status, Enum.at(result, index)}
+    else
+      {status, result}
+    end
+  end
+
+  # needs lock
+  def linsert(conn, [key, before_or_after, pivot, value]) do
+    {status, result} = get(conn, key)
+    if status === :ok do
+      pivot_index = Enum.find_index(result, fn (element) -> element === pivot end)
+
+      if is_nil(pivot_index) do
+        {:ok, -1}
+      else
+        insert_index = if(before_or_after == "AFTER", do: pivot_index + 1, else: pivot_index)
+        updated_list = List.insert_at(result, insert_index, value)
+        :ets.update_element(conn, key, {0, updated_list})
+        {:ok, length(updated_list)}
+      end
+    else
+      {status, result}
+    end
+  end
+
+  # needs lock
+  def ltrim(conn, [key, start_index, end_index]) do
+    {status, result} = get(conn, key)
+    if status === :ok do
+      :ets.update_element(conn, key, {0, String.slice(result, start_index..end_index)})
+      {:ok, "OK"}
+    else
+      {status, result}
+    end
+  end
+
+  # needs lock
   def lrem(conn, [key, count, term]) do
     {status, result} = get(conn, key)
     if status === :ok do

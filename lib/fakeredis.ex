@@ -288,12 +288,12 @@ defmodule FakeRedis do
   end
 
 
-  defp keys(conn, keylist) do
-    next_key = :ets.next(conn)
+  defp keys(conn, [last_key | keylist]) do
+    next_key = :ets.next(conn, last_key)
     if next_key === '$end_of_table' do
       {:ok, keylist}
     else
-      keys(conn, [next_key | keylist])
+      keys(conn, [next_key, last_key | keylist])
     end
   end
 
@@ -722,7 +722,7 @@ defmodule FakeRedis do
         # for negative counts passed, we want to move from left to right
         # so in that case we'll reverse the list before and after our filter
         reverse_if_negcount = fn (lst, cnt) ->
-          if(cnt < 0, do: List.reverse(lst), else: lst)
+          if(cnt < 0, do: Enum.reverse(lst), else: lst)
         end
 
         starting_list = reverse_if_negcount.(result, count)

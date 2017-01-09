@@ -10,11 +10,11 @@ use Mix.Config
 
 # You can configure for your application as:
 #
-#     config :redets, key: :value
+#     config :fakeredis, key: :value
 #
 # And access this configuration in your application as:
 #
-#     Application.get_env(:redets, :key)
+#     Application.get_env(:fakeredis, :key)
 #
 # Or configure a 3rd-party app:
 #

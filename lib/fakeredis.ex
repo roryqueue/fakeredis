@@ -1,4 +1,4 @@
-defmodule Redets do
+defmodule FakeRedis do
 
   def command!(conn, command) do
     case command(conn, command) do
@@ -36,7 +36,7 @@ defmodule Redets do
   )
 
   def command(_conn, _command) do
-    raise "Could not match first word in command list to a redets command"
+    raise "Could not match first word in command list to a fakeredis command"
   end
 
   defp random_name( length \\ 8 ) do
@@ -52,7 +52,7 @@ defmodule Redets do
   def start_link(name, options \\ [:named_table, :public]) do
     name
     |> Atom.to_string
-    |> Kernel.<>("_redets_table")
+    |> Kernel.<>("_fakeredis_table")
     |> String.to_atom
     |> :ets.new(options)
   end
@@ -156,7 +156,7 @@ defmodule Redets do
     end
   end
 
-  # get only has one argument outside the reference to our redets instance (the key)
+  # get only has one argument outside the reference to our fakeredis instance (the key)
   # so we'll allow a one-element list for consistency but also the key itself
   def get(conn, [key | _tail]), do: get(conn, key)
 
@@ -748,16 +748,3 @@ defmodule Redets do
   end
 
 end
-
-
-
-
-
-
-
-
-
-
-
-
-

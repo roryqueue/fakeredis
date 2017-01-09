@@ -1,6 +1,6 @@
-defmodule RedetsTest do
+defmodule FakeRedisTest do
   use ExUnit.Case
-  doctest Redets
+  doctest FakeRedis
 
   test "the truth" do
     assert 1 + 1 == 2

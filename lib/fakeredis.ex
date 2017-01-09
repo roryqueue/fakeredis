@@ -39,7 +39,7 @@ defmodule FakeRedis do
     raise "Could not match first word in command list to a fakeredis command"
   end
 
-  defp random_name( length \\ 8 ) do
+  defp random_name(length \\ 8) do
     :crypto.strong_rand_bytes(length)
     |> Base.url_encode64
     |> binary_part(0, length)
@@ -50,14 +50,19 @@ defmodule FakeRedis do
   def start_link, do: start_link(random_name)
 
   def start_link(name, options \\ [:named_table, :public]) do
-    name
-    |> Atom.to_string
-    |> Kernel.<>("_fakeredis_table")
-    |> String.to_atom
-    |> :ets.new(options)
+    conn =
+      name
+      |> Atom.to_string
+      |> Kernel.<>("_fakeredis")
+      |> String.to_atom
+      |> :ets.new(options)
+    {:ok, conn}
   end
 
+
   def end_link(conn_or_name), do: :ets.delete(conn_or_name)
+
+  def stop(conn_or_name), do: end_link(conn_or_name)
 
 
   defp map_extra_args(raw_args, mapped_args \\ %{}, _pending_key \\ nil)

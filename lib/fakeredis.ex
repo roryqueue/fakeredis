@@ -218,19 +218,52 @@ defmodule FakeRedis do
 
   
   def expire(conn, [key, ttl]) do
+    ttl = if(is_bitstring(ttl), do: String.to_integer(ttl), else: ttl)
     pexpire(conn, [key, ttl * 1000])
   end
 
   def expireat(conn, [key, expiry_time]) do
+    expiry_time = if is_bitstring(expiry_time) do
+      String.to_integer(expiry_time)
+    else
+      expiry_time
+    end
     pexpireat(conn, [key, expiry_time * 1000])
   end
 
   def pexpire(conn, [key, ttl]) do
-    pexpireat(conn, [key, ttl + :os.system_time(:milli_seconds)])
+    ttl = if(is_bitstring(ttl), do: String.to_integer(ttl), else: ttl)
+    pexpireat(
+      conn,
+      [key, ttl + :os.system_time(:milli_seconds)]
+    )
   end
 
+  # needs lock
   def pexpireat(conn, [key, expiry_time]) do
-    {:ok, :ets.update_element(conn, key, {1, expiry_time})}
+    expiry_time = if is_bitstring(expiry_time) do
+      String.to_integer(expiry_time)
+    else
+      expiry_time
+    end
+    {status, value} = get(conn, key)
+    # IO.inspect :ets.lookup(conn, key)
+    if status !== :ok do
+      {status, value}
+    else
+      if value === nil do
+        {:ok, false}
+      else
+        {
+          :ok,
+          :ets.update_element(
+            conn,
+            key,
+            {2, {value, expiry_time}}
+          )
+        }
+      end      
+    end
   end
 
 
@@ -306,8 +339,8 @@ defmodule FakeRedis do
 
   defp keys(conn, [last_key | keylist]) do
     next_key = :ets.next(conn, last_key)
-    if next_key === '$end_of_table' do
-      {:ok, keylist}
+    if next_key === :"$end_of_table" do
+      {:ok, [last_key | keylist]}
     else
       keys(conn, [next_key, last_key | keylist])
     end
@@ -315,7 +348,7 @@ defmodule FakeRedis do
 
   def keys(conn) do
     first_key = :ets.first(conn)
-    if first_key === '$end_of_table' do
+    if first_key === :"$end_of_table" do
       {:ok, []}
     else
       keys(conn, [first_key])

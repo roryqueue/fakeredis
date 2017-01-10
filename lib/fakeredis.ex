@@ -85,9 +85,16 @@ defmodule FakeRedis do
     arg_keys = Map.keys(extra_args)
     ttl = cond do
       "EX" in arg_keys ->
-        (Map.get(extra_args, "EX") * 1000) + :os.system_time(:milli_seconds)
+        extra_args
+        |> Map.get("EX")
+        |> String.to_integer
+        |> Kernel.*(1000)
+        |> Kernel.+(:os.system_time(:milli_seconds))
       "PX" in arg_keys ->
-        Map.get(extra_args, "EX") + :os.system_time(:milli_seconds)
+        extra_args
+        |> Map.get("PX")
+        |> String.to_integer
+        |> Kernel.+(:os.system_time(:milli_seconds))
       true -> nil
     end
 
@@ -231,7 +238,9 @@ defmodule FakeRedis do
 
   def ttl(conn, key) do
     {status, result} = pttl(conn, key)
-    if status === :ok do
+    # the (< 0) clause accounts for cases when the key is empty
+    # or has no ttl, so we pass those special values back directly
+    if status !== :ok or result < 0 do
       {status, result}
     else
       {status, result / 1000}
@@ -245,11 +254,17 @@ defmodule FakeRedis do
     if value_list === [] do
       {:ok, -2}
     else
-      [{value, ttl} | _tail] = value_list
-      if is_nil(ttl) do
+      [{key, entry} | _tail] = value_list
+      if is_nil(entry) do
         {:ok, -1}
       else
-        {:ok, ttl}
+        {value, expire_time} = entry
+        current_time = :os.system_time(:milli_seconds)
+        if expire_time < current_time do
+          {:ok, -2}
+        else
+          {:ok, expire_time - current_time}
+        end
       end
     end
   end

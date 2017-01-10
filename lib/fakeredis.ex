@@ -12,23 +12,24 @@ defmodule FakeRedis do
 
   Enum.each(
     [
-      :set, :setnx, :setex, :psetex, :mset, :msetnx,
-      :get, :getset, :mget, :expire, :expireat, :pexpire,
-      :pexpireat, :ttl, :pttl, :exists, :del,
-      :persist, :keys, :incr, :incrby, :decr,
-      :decrby, :strlen, :append, :getrange, :setrange,
-      :hget, :hgetall, :hmget, :hkeys, :hvals, :hexists,
-      :hlen, :hdel, :hset, :hsetnx, :hincr,
-      :lpushall, :lpush, :lpushx, :rpush, :rpushx,
-      :llen, :lpop, :rpop, :rpoplpush, :lset,
-      :lindex, :linsert, :ltrim, :lrem
+      :set, :setnx, :setex, :psetex, :mset, :msetnx, :get, :getset,
+      :mget, :expire, :expireat, :pexpire, :pexpireat, :ttl, :pttl,
+      :exists, :del, :persist, :keys, :incr, :incrby, :decr, :decrby,
+      :strlen, :append, :getrange, :setrange, :hget, :hgetall, :hmget,
+      :hkeys, :hvals, :hexists, :hlen, :hdel, :hset, :hsetnx, :hincr,
+      :lpushall, :lpush, :lpushx, :rpush, :rpushx, :llen, :lpop, :rpop,
+      :rpoplpush, :lset, :lindex, :linsert, :ltrim, :lrem
     ], fn(name) ->
       commandified_name = name |> Atom.to_string |> String.upcase
 
+      # point each all of command/2 to the function named by
+      # the first position in the second arg wordlist
       def command(conn, [unquote(commandified_name) | command_args]) do
         unquote(name)(conn, command_args)
       end
 
+      # then create a bang function for each command function that sends
+      # the command through the command!/2 -> command/2 -> {named_command} path
       def unquote(:"#{name}!")(conn, command_args) do
         command!(conn, [unquote(commandified_name) | command_args])
       end
@@ -128,7 +129,7 @@ defmodule FakeRedis do
  
   def setnx(conn, command_args), do: set(conn, command_args ++ ["NX"])
 
-  def set_with_exp(conn, [key, exp_val, value | _remainder], exp_key \\ "EX") do
+  defp set_with_exp(conn, [key, exp_val, value | _remainder], exp_key) do
     set(conn, [key, value, exp_key, exp_val])
   end
 

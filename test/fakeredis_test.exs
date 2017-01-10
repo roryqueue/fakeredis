@@ -42,9 +42,9 @@ defmodule FakeRedisTest do
   end
 
   test "set/2 with EX, ttl/2: expiring keys on set and checking in secs", %{conn: conn} do
-    empty_key = "EMPTYKEY"
     example_key = "TTLKEY"
     example_val = "TTLVAL"
+    empty_key = "EMPTYKEY"
     wait_secs = 1
 
     assert "OK" = FakeRedis.set!(
@@ -65,9 +65,9 @@ defmodule FakeRedisTest do
   end
 
   test "set/2 with PX, pttl/2: checking ttl in milliseconds", %{conn: conn} do
-    empty_key = "EMPTYKEY"
     example_key = "PTTLKEY"
     example_val = "PTTLVAL"
+    empty_key = "EMPTYKEY"
     wait_msecs = 500
 
     assert "OK" = FakeRedis.set!(
@@ -88,9 +88,9 @@ defmodule FakeRedisTest do
   end
 
   test "expire/2, ttl/1: expiring keys in seconds after set", %{conn: conn} do
-    empty_key = "EMPTYKEY"
     example_key = "EXPIREKEY"
     example_val = "EXPIREVAL"
+    empty_key = "EMPTYKEY"
     wait_secs = 1
 
     assert "OK" = FakeRedis.set!(conn, [example_key, example_val])
@@ -110,9 +110,9 @@ defmodule FakeRedisTest do
   end
 
   test "pexpire/2, pttl/1: expiring keys in ms after set", %{conn: conn} do
-    empty_key = "EMPTYKEY"
     example_key = "PEXPIREKEY"
     example_val = "PEXPIREVAL"
+    empty_key = "EMPTYKEY"
     wait_msecs = 500
 
     assert "OK" = FakeRedis.set!(conn, [example_key, example_val])
@@ -131,4 +131,23 @@ defmodule FakeRedisTest do
     assert false === FakeRedis.pexpire!(conn, [empty_key, wait_msecs])
   end
 
+  test "persist/2: removing key ttls and preventing expiration", %{conn: conn} do
+    example_key = "EXPIREKEY"
+    example_val = "EXPIREVAL"
+    empty_key = "EMPTYKEY"
+    wait_secs = 1
+
+    assert "OK" = FakeRedis.set!(
+      conn,
+      [example_key, example_val, "EX", wait_secs]
+    )
+    assert true === FakeRedis.persist!(conn, example_key)
+
+    assert -1 === FakeRedis.ttl!(conn, example_key)
+
+    :timer.sleep((wait_secs * 1000) + 1)
+    assert example_val === FakeRedis.get!(conn, example_key)
+
+    assert false === FakeRedis.persist!(conn, empty_key)
+  end
 end

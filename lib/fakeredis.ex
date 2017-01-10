@@ -6,7 +6,7 @@ defmodule FakeRedis do
         resp
       {:error, error} ->
         raise error
-      _ -> raise "Could not match command return to :ok or :error"
+      true -> raise "Could not match command return to :ok or :error"
     end
   end
 
@@ -235,12 +235,16 @@ defmodule FakeRedis do
   end
 
   def expireat(conn, [key, expiry_time]) do
-    expiry_time = if is_bitstring(expiry_time) do
-      String.to_integer(expiry_time)
-    else
-      expiry_time
+    expiry_time = cond do
+      is_bitstring(expiry_time) ->
+        String.to_integer(expiry_time) * 1000
+      is_integer(expiry_time) ->
+        expiry_time * 1000
+      is_nil(expiry_time) ->
+        expiry_time
+      true -> raise "Only integer, string, and nil types are accepted"
     end
-    pexpireat(conn, [key, expiry_time * 1000])
+    pexpireat(conn, [key, expiry_time])
   end
 
   def pexpire(conn, [key, ttl]) do
@@ -259,7 +263,6 @@ defmodule FakeRedis do
       expiry_time
     end
     {status, value} = get(conn, key)
-    # IO.inspect :ets.lookup(conn, key)
     if status !== :ok do
       {status, value}
     else
@@ -299,11 +302,10 @@ defmodule FakeRedis do
     if value_list === [] do
       {:ok, -2}
     else
-      [{key, entry} | _tail] = value_list
-      if is_nil(entry) do
+      [{key, {value, expire_time}} | _tail] = value_list
+      if is_nil(expire_time) do
         {:ok, -1}
       else
-        {value, expire_time} = entry
         current_time = :os.system_time(:milli_seconds)
         if expire_time < current_time do
           {:ok, -2}
@@ -344,8 +346,33 @@ defmodule FakeRedis do
 
   def persist(conn, [key | _tail]), do: persist(conn, key)
 
+  # needs lock
   def persist(conn, key) do
-    {:ok, :ets.update_element(conn, key, {1, nil})}
+    pexpireat(conn, [key, nil])
+    # {status, value} = get(conn, next_key)
+    # if status === :ok and !is_nil(value) do
+    #   {:ok, :ets.update_element(conn, key, {1, nil})}
+    # else
+
+    # end
+
+    # {status, value} = get(conn, key)
+    # if status !== :ok do
+    #   {status, value}
+    # else
+    #   if value === nil do
+    #     {:ok, false}
+    #   else
+    #     {
+    #       :ok,
+    #       :ets.update_element(
+    #         conn,
+    #         key,
+    #         {2, {value, nil}}
+    #       )
+    #     }
+    #   end      
+    # end
   end
 
 

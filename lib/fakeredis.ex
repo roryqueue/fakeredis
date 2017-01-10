@@ -205,7 +205,7 @@ defmodule FakeRedis do
   end
 
   def mget(conn, command_args, results \\ [])
-  def mget(_conn, [], results), do: {:ok, results}
+  def mget(_conn, [], results), do: {:ok, Enum.reverse(results)}
 
   def mget(conn, [next_arg | remaining_args], results) do
     {status, result} = get(conn, next_arg)

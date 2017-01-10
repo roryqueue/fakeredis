@@ -18,6 +18,26 @@ defmodule FakeRedisTest do
     assert second_val === FakeRedis.command!(conn, ~w(GET TESTKEY))
   end
 
+  test "mset/2, mget/1: set and get many values", %{conn: conn} do
+    first_key = "FIRSTKEY"
+    second_key = "SECONDKEY"
+    third_key = "THIRDKEY"
+    empty_key = "EMPTYKEY"
+
+    first_val = "FIRSTVAL"
+    second_val = "SECONDVAL"
+    third_val = "THIRDVAL"
+
+    assert "OK" = FakeRedis.command!(
+      conn,
+      ~w(MSET #{first_key} #{first_val} #{second_key} #{second_val} #{third_key} #{third_val})
+    )
+    assert [first_val, second_val, third_val, nil] === FakeRedis.command!(
+      conn,
+      ~w(MGET #{first_key} #{second_key} #{third_key} #{empty_key})
+    )
+  end
+
   test "set/2, ttl/2, pttl/2: expiring keys on set", %{conn: conn} do
     first_val = "FIRSTVAL"
     second_val = "SECONDVAL"

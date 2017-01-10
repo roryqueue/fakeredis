@@ -30,7 +30,7 @@ defmodule FakeRedis do
       end
 
       def unquote(:"#{name}!")(conn, command_args) do
-        command!(conn, [unquote(commandified_name), command_args])
+        command!(conn, [unquote(commandified_name) | command_args])
       end
     end
   )
@@ -170,7 +170,8 @@ defmodule FakeRedis do
     if value_list === [] do
       {:ok, nil}
     else
-      [{value, ttl} | _tail] = value_list
+      [{_testkey, {value, ttl}} | tail] = value_list
+
       if ttl < :os.system_time(:milli_seconds) do
         :ets.delete(conn, key)
         {:ok, nil}

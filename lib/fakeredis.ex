@@ -19,7 +19,7 @@ defmodule FakeRedis do
       :hkeys, :hvals, :hexists, :hlen, :hdel, :hset, :hsetnx, :hincr,
       :lpushall, :lpush, :lpushx, :rpush, :rpushx, :llen, :lpop, :rpop,
       :rpoplpush, :lset, :lindex, :linsert, :ltrim, :lrem
-    ], fn(name) ->
+    ], fn (name) ->
       commandified_name = name |> Atom.to_string |> String.upcase
 
       # point each all of command/2 to the function named by
@@ -31,6 +31,7 @@ defmodule FakeRedis do
       # then create a bang function for each command function that sends
       # the command through the command!/2 -> command/2 -> {named_command} path
       def unquote(:"#{name}!")(conn, command_args) do
+        command_args = if(is_list(command_args), do: command_args, else: [command_args])
         command!(conn, [unquote(commandified_name) | command_args])
       end
     end
@@ -70,12 +71,14 @@ defmodule FakeRedis do
   defp map_extra_args([], mapped_args, _pending_key), do: mapped_args
 
   defp map_extra_args([next_arg | remainder], mapped_args, pending_key) do
+    existence_args = ["NX", "nx", "XX", "xx"]
+    expiration_args = ["EX", "ex", "PX", "px"]
     cond do
       !is_nil(pending_key) ->
         map_extra_args(remainder, Map.put(mapped_args, pending_key, next_arg))
-      next_arg in ["NX", "nx", "XX", "xx"] ->
+      next_arg in existence_args ->
         map_extra_args(remainder, Map.put(mapped_args, String.upcase(next_arg), true))
-      next_arg in ["EX", "ex", "PX", "px"] ->
+      next_arg in expiration_args ->
         map_extra_args(remainder, mapped_args, String.upcase(next_arg))        
       true -> raise ArgumentError, "Can't match extra arg"
     end
@@ -83,18 +86,26 @@ defmodule FakeRedis do
 
 
   defp set(conn, key, value, extra_args) do
+    make_sure_is_int = fn (expiration_num) ->
+      if is_bitstring(expiration_num) do
+        String.to_integer(expiration_num)
+      else
+        expiration_num
+      end
+    end
+
     arg_keys = Map.keys(extra_args)
     ttl = cond do
       "EX" in arg_keys ->
         extra_args
         |> Map.get("EX")
-        |> String.to_integer
+        |> make_sure_is_int.()
         |> Kernel.*(1000)
         |> Kernel.+(:os.system_time(:milli_seconds))
       "PX" in arg_keys ->
         extra_args
         |> Map.get("PX")
-        |> String.to_integer
+        |> make_sure_is_int.()
         |> Kernel.+(:os.system_time(:milli_seconds))
       true -> nil
     end

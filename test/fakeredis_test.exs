@@ -9,13 +9,14 @@ defmodule FakeRedisTest do
   end
 
   test "set/2, get/1, getset/2: set and get basic values", %{conn: conn} do
+    test_key = "TESTKEY"
     first_val = "FIRSTVAL"
     second_val = "SECONDVAL"
 
-    assert "OK" = FakeRedis.command!(conn, ~w(SET TESTKEY #{first_val}))
-    assert first_val === FakeRedis.command!(conn, ~w(GET TESTKEY))
-    assert first_val === FakeRedis.command!(conn, ~w(GETSET TESTKEY #{second_val}))
-    assert second_val === FakeRedis.command!(conn, ~w(GET TESTKEY))
+    assert "OK" = FakeRedis.set!(conn, [test_key, first_val])
+    assert first_val === FakeRedis.get!(conn, test_key)
+    assert first_val === FakeRedis.getset!(conn, [test_key, second_val])
+    assert second_val === FakeRedis.get!(conn, test_key)
   end
 
   test "mset/2, mget/1: set and get many values", %{conn: conn} do
@@ -28,88 +29,92 @@ defmodule FakeRedisTest do
     second_val = "SECONDVAL"
     third_val = "THIRDVAL"
 
-    assert "OK" = FakeRedis.command!(
+    assert "OK" = FakeRedis.mset!(
       conn,
-      ~w(MSET #{first_key} #{first_val} #{second_key} #{second_val} #{third_key} #{third_val})
+      [first_key, first_val, second_key, second_val, third_key, third_val]
     )
-    assert [first_val, second_val, third_val, nil] === FakeRedis.command!(
+    assert [first_val, second_val, third_val, nil] === FakeRedis.mget!(
       conn,
-      ~w(MGET #{first_key} #{second_key} #{third_key} #{empty_key})
+      [first_key, second_key, third_key, empty_key]
     )
   end
 
   test "set/2 with EX, ttl/2: expiring keys on set and checking in secs", %{conn: conn} do
+    example_key = "TTLKEY"
     example_val = "TTLVAL"
     wait_secs = 1
 
-    assert "OK" = FakeRedis.command!(
+    assert "OK" = FakeRedis.set!(
       conn,
-      ~w(SET TESTKEY #{example_val} EX #{wait_secs})
+      [example_key, example_val, "EX", wait_secs]
     )
-    assert example_val === FakeRedis.command!(conn, ~w(GET TESTKEY))
+    assert example_val === FakeRedis.get!(conn, example_key)
     :timer.sleep(1)
 
-    first_ttl = FakeRedis.command!(conn, ~w(TTL TESTKEY))
+    first_ttl = FakeRedis.ttl!(conn, example_key)
     assert first_ttl < wait_secs
     refute first_ttl < 0
 
     :timer.sleep(wait_secs * 1000)
-    assert nil === FakeRedis.command!(conn, ~w(GET TESTKEY))
+    assert nil === FakeRedis.get!(conn, example_key)
   end
 
-  test "set/2 with PX, pttl/2: checking ttl in milliseconcs", %{conn: conn} do
+  test "set/2 with PX, pttl/2: checking ttl in milliseconds", %{conn: conn} do
+    example_key = "PTTLKEY"
     example_val = "PTTLVAL"
     wait_msecs = 500
 
-    assert "OK" = FakeRedis.command!(
+    assert "OK" = FakeRedis.set!(
       conn,
-      ~w(SET TESTKEY #{example_val} PX #{wait_msecs})
+      ~w(#{example_key} #{example_val} PX #{wait_msecs})
     )
-    assert example_val === FakeRedis.command!(conn, ~w(GET TESTKEY))
+    assert example_val === FakeRedis.get!(conn, example_key)
 
     :timer.sleep(1)
-    intermediate_ttl = FakeRedis.command!(conn, ~w(PTTL TESTKEY))
+    intermediate_ttl = FakeRedis.pttl!(conn, example_key)
     assert intermediate_ttl < wait_msecs
     refute intermediate_ttl < 0
 
     :timer.sleep(wait_msecs)
-    assert nil === FakeRedis.command!(conn, ~w(GET TESTKEY))
+    assert nil === FakeRedis.get!(conn, example_key)
   end
 
   test "expire/2, ttl/1: expiring keys in seconds after set", %{conn: conn} do
+    example_key = "EXPIREKEY"
     example_val = "EXPIREVAL"
     wait_secs = 1
 
-    assert "OK" = FakeRedis.command!(conn, ~w(SET TESTKEY #{example_val}))
-    assert true = FakeRedis.command!(conn, ~w(EXPIRE TESTKEY #{wait_secs}))
+    assert "OK" = FakeRedis.set!(conn, [example_key, example_val])
+    assert true = FakeRedis.expire!(conn, [example_key, wait_secs])
 
-    assert example_val === FakeRedis.command!(conn, ~w(GET TESTKEY))
+    assert example_val === FakeRedis.get!(conn, example_key)
     :timer.sleep(1)
 
-    intermediate_ttl = FakeRedis.command!(conn, ~w(TTL TESTKEY))
+    intermediate_ttl = FakeRedis.ttl!(conn, example_key)
     assert intermediate_ttl < wait_secs
     refute intermediate_ttl < 0
 
     :timer.sleep(wait_secs * 1000)
-    assert nil === FakeRedis.command!(conn, ~w(GET TESTKEY))
+    assert nil === FakeRedis.get!(conn, example_key)
   end
 
   test "pexpire/2, pttl/1: expiring keys in ms after set", %{conn: conn} do
+    example_key = "PEXPIREKEY"
     example_val = "PEXPIREVAL"
     wait_msecs = 500
 
-    assert "OK" = FakeRedis.command!(conn, ~w(SET TESTKEY #{example_val}))
-    assert true = FakeRedis.command!(conn, ~w(PEXPIRE TESTKEY #{wait_msecs}))
+    assert "OK" = FakeRedis.set!(conn, [example_key, example_val])
+    assert true = FakeRedis.pexpire!(conn, [example_key, wait_msecs])
 
-    assert example_val === FakeRedis.command!(conn, ~w(GET TESTKEY))
+    assert example_val === FakeRedis.get!(conn, example_key)
 
     :timer.sleep(1)
-    intermediate_ttl = FakeRedis.command!(conn, ~w(PTTL TESTKEY))
+    intermediate_ttl = FakeRedis.pttl!(conn, example_key)
     assert intermediate_ttl < wait_msecs
     refute intermediate_ttl < 0
 
     :timer.sleep(wait_msecs)
-    assert nil === FakeRedis.command!(conn, ~w(GET TESTKEY))
+    assert nil === FakeRedis.get!(conn, example_key)
   end
 
 end

@@ -85,6 +85,10 @@ defmodule FakeRedis do
   end
 
 
+  defp bool_to_int(val) when is_boolean(val), do: if(val, do: 1, else: 0)
+  defp bool_to_int(_val), do: raise "bool_to_int only takes booleans"
+
+
   defp set(conn, key, value, extra_args) do
     make_sure_is_int = fn (expiration_num) ->
       if is_bitstring(expiration_num) do
@@ -262,12 +266,13 @@ defmodule FakeRedis do
     else
       expiry_time
     end
+
     {status, value} = get(conn, key)
     if status !== :ok do
       {status, value}
     else
       if value === nil do
-        {:ok, false}
+        {:ok, 0}
       else
         {
           :ok,
@@ -275,7 +280,7 @@ defmodule FakeRedis do
             conn,
             key,
             {2, {value, expiry_time}}
-          )
+          ) |> bool_to_int
         }
       end      
     end
@@ -320,7 +325,7 @@ defmodule FakeRedis do
   def exists(conn, keys, counter \\ 0)
   def exists(_conn, [], counter), do: {:ok, counter}
 
-  def exists(conn, [next_key, remaining_keys], counter) do
+  def exists(conn, [next_key | remaining_keys], counter) do
     {status, value} = get(conn, next_key)
     if status === :ok and !is_nil(value) do
       exists(conn, remaining_keys, counter + 1)
@@ -349,30 +354,6 @@ defmodule FakeRedis do
   # needs lock
   def persist(conn, key) do
     pexpireat(conn, [key, nil])
-    # {status, value} = get(conn, next_key)
-    # if status === :ok and !is_nil(value) do
-    #   {:ok, :ets.update_element(conn, key, {1, nil})}
-    # else
-
-    # end
-
-    # {status, value} = get(conn, key)
-    # if status !== :ok do
-    #   {status, value}
-    # else
-    #   if value === nil do
-    #     {:ok, false}
-    #   else
-    #     {
-    #       :ok,
-    #       :ets.update_element(
-    #         conn,
-    #         key,
-    #         {2, {value, nil}}
-    #       )
-    #     }
-    #   end      
-    # end
   end
 
 

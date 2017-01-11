@@ -95,28 +95,28 @@ defmodule FakeRedis do
   defp bool_to_int(val) when is_boolean(val), do: if(val, do: 1, else: 0)
   defp bool_to_int(_val), do: raise "bool_to_int only takes booleans"
 
+  defp make_sure_is_int (expiration_num) do
+    if is_bitstring(expiration_num) do
+      String.to_integer(expiration_num)
+    else
+      expiration_num
+    end
+  end
 
   defp set(conn, key, value, extra_args) do
-    make_sure_is_int = fn (expiration_num) ->
-      if is_bitstring(expiration_num) do
-        String.to_integer(expiration_num)
-      else
-        expiration_num
-      end
-    end
 
     arg_keys = Map.keys(extra_args)
     ttl = cond do
       "EX" in arg_keys ->
         extra_args
         |> Map.get("EX")
-        |> make_sure_is_int.()
+        |> make_sure_is_int
         |> Kernel.*(1000)
         |> Kernel.+(:os.system_time(:milli_seconds))
       "PX" in arg_keys ->
         extra_args
         |> Map.get("PX")
-        |> make_sure_is_int.()
+        |> make_sure_is_int
         |> Kernel.+(:os.system_time(:milli_seconds))
       true -> nil
     end
@@ -211,9 +211,9 @@ defmodule FakeRedis do
     if value_list === [] do
       {:ok, nil}
     else
-      [{_testkey, {value, ttl}} | tail] = value_list
+      [{_testkey, {value, expire_time}} | tail] = value_list
 
-      if ttl < :os.system_time(:milli_seconds) do
+      if expire_time < :os.system_time(:milli_seconds) do
         :ets.delete(conn, key)
         {:ok, nil}
       else
@@ -222,6 +222,21 @@ defmodule FakeRedis do
     end
   end
 
+  defp get_with_exp(conn, key) do
+    value_list = :ets.lookup(conn, key)
+    if value_list === [] do
+      {:ok, {nil, nil}}
+    else
+      [{_testkey, {value, expire_time}} | tail] = value_list
+
+      if expire_time < :os.system_time(:milli_seconds) do
+        :ets.delete(conn, key)
+        {:ok, {nil, nil}}
+      else
+        {:ok, {value, expire_time}}
+      end
+    end
+  end
 
   # needs lock
   def getset(conn, command_args) do
@@ -414,9 +429,30 @@ defmodule FakeRedis do
 
   # needs lock
   def incrby(conn, [key, increment]) do
-    {status, result} = setnx(conn, [key, 0])
+    {status, result} = get_with_exp(conn, key)
     if status === :ok do
-      {:ok, :ets.update_counter(conn, key, {0, increment})}
+      {value, expire_time} = result
+ 
+      if is_nil(value) do
+        count = make_sure_is_int(increment)
+
+        {set_status, set_result} = set(conn, [key, count])
+        if set_status === :ok do
+          {:ok, count}
+        else
+          {set_status, set_result}
+        end
+      else
+        updated_count =
+          make_sure_is_int(value) + make_sure_is_int(increment)
+
+        :ets.update_element(
+          conn,
+          key,
+          {2, {updated_count, expire_time}}
+        )
+        {:ok, updated_count}
+      end
     else
       {status, result}
     end

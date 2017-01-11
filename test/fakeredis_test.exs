@@ -204,6 +204,25 @@ defmodule FakeRedisTest do
       (FakeRedis.keys!(conn) |> Enum.sort)
   end
 
+  test "incr/2: incrementing a key", %{conn: conn} do
+    first_key = "FIRSTKEY"
+    second_key = "SECONDKEY"
+    third_key = "THIRDKEY"
+
+    first_val = 5
+    second_val = "7"
+
+    assert "OK" = FakeRedis.set!(conn, [first_key, first_val])
+    assert "OK" = FakeRedis.set!(conn, [second_key, second_val])
+
+    assert 6 = FakeRedis.incr!(conn, first_key)
+    assert 6 = FakeRedis.get!(conn, first_key)
+    assert 8 = FakeRedis.incr!(conn, second_key)
+    assert 8 = FakeRedis.get!(conn, second_key)
+    assert 1 = FakeRedis.incr!(conn, third_key)
+    assert 1 = FakeRedis.get!(conn, third_key)
+  end
+
   test "pexpire/2, pttl/1: expiring keys in ms after set", %{conn: conn} do
     example_key = "PEXPIREKEY"
     example_val = "PEXPIREVAL"

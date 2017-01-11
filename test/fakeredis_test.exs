@@ -35,6 +35,46 @@ defmodule FakeRedisTest do
     assert second_val === FakeRedis.get!(conn, second_key)
   end
 
+  test "setnx/2: setting only if does not exist", %{conn: conn} do
+    first_key = "FIRSTKEY"
+    second_key = "SECONDKEY"
+    first_val = "FIRSTVAL"
+    second_val = "SECONDVAL"
+
+    assert "OK" = FakeRedis.set!(conn, [first_key, first_val])
+    assert first_val === FakeRedis.get!(conn, first_key)
+    assert nil === FakeRedis.setnx!(conn, [first_key, second_val])
+    assert first_val === FakeRedis.get!(conn, first_key)
+    assert "OK" === FakeRedis.setnx!(conn, [second_key, second_val])
+    assert second_val === FakeRedis.get!(conn, second_key)
+  end
+
+  test "msetnx/2: setting multiple only if none exist", %{conn: conn} do
+    first_key = "FIRSTKEY"
+    second_key = "SECONDKEY"
+    third_key = "THIRDKEY"
+    fourth_key = "FOURTHKEY"
+
+    first_val = "FIRSTVAL"
+    second_val = "SECONDVAL"
+    third_val = "THIRDVAL"
+    fourth_val = "FOURTHVAL"
+
+    assert "OK" = FakeRedis.set!(conn, [second_key, second_val])
+    assert 0 = FakeRedis.msetnx!(
+      conn,
+      [first_key, first_val, second_key, second_val]
+    )
+    assert 1 = FakeRedis.msetnx!(
+      conn,
+      [third_key, third_val, fourth_key, fourth_val]
+    )
+
+    assert nil === FakeRedis.get!(conn, first_key)
+    assert third_val === FakeRedis.get!(conn, third_key)
+    assert fourth_val === FakeRedis.get!(conn, fourth_key)
+  end
+
   test "set/2 with XX: setting only if does exist", %{conn: conn} do
     first_key = "FIRSTKEY"
     second_key = "SECONDKEY"

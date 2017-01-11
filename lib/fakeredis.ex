@@ -174,20 +174,31 @@ defmodule FakeRedis do
     end
   end
 
-  def msetnx(conn, command_args, return_val \\ true, key \\ nil)
-  def msetnx(_conn, [], return_val, _key), do: {:ok, return_val}
 
-  def msetnx(conn, [next_arg | remaining_args], return_val, key) do
-    if is_nil(key) do
-      msetnx(conn, remaining_args, return_val, next_arg)
-    else
-      {status, result} = setnx(conn, [key, next_arg])
-      if status === :ok do
-        updated_return_val = if(is_nil(result), do: false, else: return_val)
-        msetnx(conn, remaining_args, updated_return_val)
+  def msetnx(conn, command_args) do
+    keys = Enum.take_every(command_args, 2)
+    {get_status, get_result} = mget(conn, keys)
+
+    if get_status === :ok do
+      any_vals? =
+        get_result
+        |> Enum.filter(fn(x) -> !is_nil(x) end)
+        |> Kernel.length
+        |> Kernel.>(0)
+
+      if any_vals? do
+        {:ok, 0}
       else
-        {status, result}
+        {set_status, set_result} = mset(conn, command_args)
+
+        if set_status === :ok do
+          {:ok, 1}
+        else
+          {set_status, set_result}
+        end
       end
+    else
+      {get_status, get_result}
     end
   end
 

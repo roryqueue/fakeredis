@@ -61,7 +61,7 @@ defmodule FakeRedisTest do
     :timer.sleep(wait_secs * 1000)
     assert nil === FakeRedis.get!(conn, example_key)
 
-    assert -2 === FakeRedis.ttl!(conn, empty_key)
+    assert -2 = FakeRedis.ttl!(conn, empty_key)
   end
 
   test "set/2 with PX, pttl/2: checking ttl in milliseconds", %{conn: conn} do
@@ -84,29 +84,56 @@ defmodule FakeRedisTest do
     :timer.sleep(wait_msecs)
     assert nil === FakeRedis.get!(conn, example_key)
 
-    assert -2 === FakeRedis.pttl!(conn, empty_key)
+    assert -2 = FakeRedis.pttl!(conn, empty_key)
   end
 
-  test "expire/2, ttl/1: expiring keys in seconds after set", %{conn: conn} do
+  test "persist/2: removing key ttls and preventing expiration", %{conn: conn} do
     example_key = "EXPIREKEY"
     example_val = "EXPIREVAL"
     empty_key = "EMPTYKEY"
     wait_secs = 1
 
-    assert "OK" = FakeRedis.set!(conn, [example_key, example_val])
-    assert 1 = FakeRedis.expire!(conn, [example_key, wait_secs])
+    assert "OK" = FakeRedis.set!(
+      conn,
+      [example_key, example_val, "EX", wait_secs]
+    )
+    assert 1 = FakeRedis.persist!(conn, example_key)
 
+    assert -1 = FakeRedis.ttl!(conn, example_key)
+
+    :timer.sleep((wait_secs * 1000) + 1)
     assert example_val === FakeRedis.get!(conn, example_key)
-    :timer.sleep(1)
 
-    intermediate_ttl = FakeRedis.ttl!(conn, example_key)
-    assert intermediate_ttl < wait_secs
-    refute intermediate_ttl < 0
+    assert 0 = FakeRedis.persist!(conn, empty_key)
+  end
 
-    :timer.sleep(wait_secs * 1000)
-    assert nil === FakeRedis.get!(conn, example_key)
+  test "exists/2: checking if a key exists", %{conn: conn} do
+    example_key = "EXPIREKEY"
+    example_val = "EXPIREVAL"
+    empty_key = "EMPTYKEY"
 
-    assert 0 === FakeRedis.expire!(conn, [empty_key, wait_secs])
+    assert "OK" = FakeRedis.set!(conn, [example_key, example_val])
+    assert 1 = FakeRedis.exists!(conn, example_key)
+
+    assert 0 = FakeRedis.exists!(conn, empty_key)
+  end
+
+  test "keys/1: list all keys in an instance", %{conn: conn} do
+    first_key = "FIRSTKEY"
+    second_key = "SECONDKEY"
+    third_key = "THIRDKEY"
+
+    first_val = "FIRSTVAL"
+    second_val = "SECONDVAL"
+    third_val = "THIRDVAL"
+
+    assert [] = FakeRedis.keys!(conn)
+    assert "OK" = FakeRedis.mset!(
+      conn,
+      [first_key, first_val, second_key, second_val, third_key, third_val]
+    )
+    assert ([first_key, second_key, third_key] |> Enum.sort) ===
+      (FakeRedis.keys!(conn) |> Enum.sort)
   end
 
   test "pexpire/2, pttl/1: expiring keys in ms after set", %{conn: conn} do
@@ -131,34 +158,26 @@ defmodule FakeRedisTest do
     assert 0 === FakeRedis.pexpire!(conn, [empty_key, wait_msecs])
   end
 
-  test "persist/2: removing key ttls and preventing expiration", %{conn: conn} do
+  test "expire/2, ttl/1: expiring keys in seconds after set", %{conn: conn} do
     example_key = "EXPIREKEY"
     example_val = "EXPIREVAL"
     empty_key = "EMPTYKEY"
     wait_secs = 1
 
-    assert "OK" = FakeRedis.set!(
-      conn,
-      [example_key, example_val, "EX", wait_secs]
-    )
-    assert 1 === FakeRedis.persist!(conn, example_key)
-
-    assert -1 === FakeRedis.ttl!(conn, example_key)
-
-    :timer.sleep((wait_secs * 1000) + 1)
-    assert example_val === FakeRedis.get!(conn, example_key)
-
-    assert 0 === FakeRedis.persist!(conn, empty_key)
-  end
-
-  test "exists/2: checking if a key exists", %{conn: conn} do
-    example_key = "EXPIREKEY"
-    example_val = "EXPIREVAL"
-    empty_key = "EMPTYKEY"
-
     assert "OK" = FakeRedis.set!(conn, [example_key, example_val])
-    assert 1 = FakeRedis.exists!(conn, example_key)
+    assert 1 = FakeRedis.expire!(conn, [example_key, wait_secs])
 
-    assert 0 === FakeRedis.exists!(conn, empty_key)
+    assert example_val === FakeRedis.get!(conn, example_key)
+    :timer.sleep(1)
+
+    intermediate_ttl = FakeRedis.ttl!(conn, example_key)
+    assert intermediate_ttl < wait_secs
+    refute intermediate_ttl < 0
+
+    :timer.sleep(wait_secs * 1000)
+    assert nil === FakeRedis.get!(conn, example_key)
+
+    assert 0 === FakeRedis.expire!(conn, [empty_key, wait_secs])
   end
+
 end

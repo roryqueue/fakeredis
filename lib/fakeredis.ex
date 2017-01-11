@@ -14,8 +14,8 @@ defmodule FakeRedis do
     [
       :set, :setnx, :setex, :psetex, :mset, :msetnx, :get, :getset,
       :mget, :expire, :expireat, :pexpire, :pexpireat, :ttl, :pttl,
-      :exists, :del, :persist, :keys, :incr, :incrby, :decr, :decrby,
-      :strlen, :append, :getrange, :setrange, :hget, :hgetall, :hmget,
+      :exists, :del, :persist, :incr, :incrby, :decr, :decrby,
+      :strlen,:append, :getrange, :setrange, :hget, :hgetall, :hmget,
       :hkeys, :hvals, :hexists, :hlen, :hdel, :hset, :hsetnx, :hincr,
       :lpushall, :lpush, :lpushx, :rpush, :rpushx, :llen, :lpop, :rpop,
       :rpoplpush, :lset, :lindex, :linsert, :ltrim, :lrem
@@ -37,9 +37,16 @@ defmodule FakeRedis do
     end
   )
 
+  # since keys doesn't take any args except the fakeredis instance
+  # we need to define this behavior statically-- it won't be
+  # taken care of dynamically above
+  def command(conn, ["KEYS"]), do: keys(conn)
+  def command(conn, "KEYS"), do: keys(conn)
+
   def command(_conn, _command) do
     raise "Could not match first word in command list to a fakeredis command"
   end
+
 
   defp random_name(length \\ 8) do
     :crypto.strong_rand_bytes(length)
@@ -359,10 +366,17 @@ defmodule FakeRedis do
 
   defp keys(conn, [last_key | keylist]) do
     next_key = :ets.next(conn, last_key)
-    if next_key === :"$end_of_table" do
-      {:ok, [last_key | keylist]}
+
+    checked_keylist = if get(conn, last_key) do
+      [last_key | keylist]
     else
-      keys(conn, [next_key, last_key | keylist])
+      keylist
+    end
+
+    if next_key === :"$end_of_table" do
+      {:ok, checked_keylist}
+    else
+      keys(conn, [next_key | checked_keylist])
     end
   end
 
@@ -374,6 +388,11 @@ defmodule FakeRedis do
       keys(conn, [first_key])
     end
   end
+
+  # since keys doesn't take any args except the fakeredis instance
+  # we need to define this behavior statically-- it won't be
+  # taken care of dynamically above
+  def keys!(conn), do: command!(conn, "KEYS")
 
 
   def incr(conn, [key | _tail]), do: incr(conn, key)
@@ -820,5 +839,4 @@ defmodule FakeRedis do
       {status, result}
     end   
   end
-
 end

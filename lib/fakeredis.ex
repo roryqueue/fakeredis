@@ -522,21 +522,39 @@ defmodule FakeRedis do
 
   # needs lock
   def setrange(conn, [key, offset, addition]) do
-    {status, result} = get(conn, key)
+    {status, result} = get_with_exp(conn, key)
     if status === :ok do
-      if is_nil(result) do
-        set(conn, [key, String.pad_leading(addition, offset, <<0>>)])
-      else
-        {initial_value, ttl} = result
-        initial_length = String.length(initial_value)
-        new_value = if initial_length > offset do
-          String.slice(initial_value, 0..offset) <> addition
+      {value, expire_time} = result
+      addition_length = String.length(addition)
+
+      if is_nil(value) do
+        new_value = String.pad_leading(
+          addition,
+          offset + addition_length,
+          <<0>>
+        )
+        {set_status, set_result} = set(conn, [key, new_value])
+        if set_status === :ok do
+          {:ok, new_value}
         else
-          initial_value <>
-            String.pad_leading(addition, offset - initial_length, <<0>>)
+          {set_status, set_result}
         end
-        :ets.update_element(conn, key, {0, new_value})
-        {:ok, String.length(new_value)}
+      else
+        initial_length = String.length(value)
+
+        updated_value = if initial_length > offset do
+          String.slice(value, 0..(offset - 1)) <> addition <>
+            String.slice(value, (offset + addition_length)..-1)
+        else
+          value <>
+            String.pad_leading(
+              addition,
+              offset - initial_length + addition_length,
+              <<0>>
+            )
+        end
+        :ets.update_element(conn, key, {2, {updated_value, expire_time}})
+        {:ok, updated_value}
       end
     else
       {status, result}

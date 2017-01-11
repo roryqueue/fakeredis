@@ -316,6 +316,25 @@ defmodule FakeRedisTest do
     end
   end
 
+  test "setrange/2: get a substring from a string value", %{conn: conn} do
+    test_key = "TESTKEY"
+    test_val = "TESTVAL"
+    test_overwrite = "XYZ"
+    start_index = 2
+    empty_key = "EMPTYKEY"
+
+    assert "OK" = FakeRedis.set!(conn, [test_key, test_val])
+    assert String.slice(test_val, 0..(start_index - 1)) <>
+      test_overwrite <>
+      String.slice(test_val, (start_index + String.length(test_overwrite))..-1) ===
+      FakeRedis.setrange!(conn, [test_key, start_index, test_overwrite])
+    assert String.pad_leading(
+      test_overwrite,
+      start_index + String.length(test_overwrite),
+      <<0>>
+    ) === FakeRedis.setrange!(conn, [empty_key, start_index, test_overwrite])
+  end
+
   test "append/2: appending to a string value", %{conn: conn} do
     first_key = "FIRSTKEY"
     first_val = "FIRSTVAL+"

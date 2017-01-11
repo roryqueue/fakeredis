@@ -465,7 +465,7 @@ defmodule FakeRedis do
   end
 
   def decrby(conn, [key, decrement]) do
-    incrby(conn, [key, -decrement])
+    incrby(conn, [key, -make_sure_is_int(decrement)])
   end
 
 

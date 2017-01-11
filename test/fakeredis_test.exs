@@ -223,6 +223,71 @@ defmodule FakeRedisTest do
     assert 1 = FakeRedis.get!(conn, third_key)
   end
 
+  test "decr/2: decrementing a key", %{conn: conn} do
+    first_key = "FIRSTKEY"
+    second_key = "SECONDKEY"
+    third_key = "THIRDKEY"
+
+    first_val = 5
+    second_val = "7"
+
+    assert "OK" = FakeRedis.set!(conn, [first_key, first_val])
+    assert "OK" = FakeRedis.set!(conn, [second_key, second_val])
+
+    assert 4 = FakeRedis.decr!(conn, first_key)
+    assert 4 = FakeRedis.get!(conn, first_key)
+    assert 6 = FakeRedis.decr!(conn, second_key)
+    assert 6 = FakeRedis.get!(conn, second_key)
+    assert -1 = FakeRedis.decr!(conn, third_key)
+    assert -1 = FakeRedis.get!(conn, third_key)
+  end
+
+  test "incrby/2: incrementing a key by more than one", %{conn: conn} do
+    first_key = "FIRSTKEY"
+    second_key = "SECONDKEY"
+    third_key = "THIRDKEY"
+
+    first_val = 5
+    second_val = "7"
+
+    first_increment = "3"
+    second_increment = 4
+    third_increment = 5
+
+    assert "OK" = FakeRedis.set!(conn, [first_key, first_val])
+    assert "OK" = FakeRedis.set!(conn, [second_key, second_val])
+
+    assert 8 = FakeRedis.incrby!(conn, [first_key, first_increment])
+    assert 8 = FakeRedis.get!(conn, first_key)
+    assert 11 = FakeRedis.incrby!(conn, [second_key, second_increment])
+    assert 11 = FakeRedis.get!(conn, second_key)
+    assert 5 = FakeRedis.incrby!(conn, [third_key, third_increment])
+    assert 5 = FakeRedis.get!(conn, third_key)
+  end
+
+  test "decrby/2: decrementing a key by more than one", %{conn: conn} do
+    first_key = "FIRSTKEY"
+    second_key = "SECONDKEY"
+    third_key = "THIRDKEY"
+
+    first_val = 5
+    second_val = "7"
+
+    first_decrement = "3"
+    second_decrement = 4
+    third_decrement = 5
+
+    assert "OK" = FakeRedis.set!(conn, [first_key, first_val])
+    assert "OK" = FakeRedis.set!(conn, [second_key, second_val])
+
+    assert 2 = FakeRedis.decrby!(conn, [first_key, first_decrement])
+    assert 2 = FakeRedis.get!(conn, first_key)
+    assert 3 = FakeRedis.decrby!(conn, [second_key, second_decrement])
+    assert 3 = FakeRedis.get!(conn, second_key)
+    assert -5 = FakeRedis.decrby!(conn, [third_key, third_decrement])
+    assert -5 = FakeRedis.get!(conn, third_key)
+  end
+
   test "pexpire/2, pttl/1: expiring keys in ms after set", %{conn: conn} do
     example_key = "PEXPIREKEY"
     example_val = "PEXPIREVAL"

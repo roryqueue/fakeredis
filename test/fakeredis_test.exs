@@ -288,6 +288,16 @@ defmodule FakeRedisTest do
     assert -5 = FakeRedis.get!(conn, third_key)
   end
 
+  test "strlen/2: checking the length of a value", %{conn: conn} do
+    test_key = "TESTKEY"
+    test_val = "TESTVAL"
+    empty_key = "EMPTYKEY"
+
+    assert "OK" = FakeRedis.set!(conn, [test_key, test_val])
+    assert 7 === FakeRedis.strlen!(conn, test_key)
+    assert 0 === FakeRedis.strlen!(conn, empty_key)
+  end
+
   test "pexpire/2, pttl/1: expiring keys in ms after set", %{conn: conn} do
     example_key = "PEXPIREKEY"
     example_val = "PEXPIREVAL"

@@ -513,8 +513,7 @@ defmodule FakeRedis do
       if is_nil(result) do
         {:error, "Key is empty"}
       else
-        {initial_value, ttl} = result
-        {:ok, String.slice(initial_value, start_index..end_index)}
+        {:ok, String.slice(result, start_index..end_index)}
       end
     else
       {status, result}

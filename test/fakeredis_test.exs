@@ -298,6 +298,24 @@ defmodule FakeRedisTest do
     assert 0 === FakeRedis.strlen!(conn, empty_key)
   end
 
+  test "getrange/2: get a substring from a string value", %{conn: conn} do
+    test_key = "TESTKEY"
+    test_val = "TESTVAL"
+    start_index = 1
+    end_index = -2
+    empty_key = "EMPTYKEY"
+
+    assert "OK" = FakeRedis.set!(conn, [test_key, test_val])
+    assert String.slice(test_val, start_index..end_index) ===
+      FakeRedis.getrange!(conn, [test_key, start_index, end_index])
+    assert_raise RuntimeError, "Key is empty", fn ->
+      FakeRedis.getrange!(
+        conn,
+        [empty_key, start_index, end_index]
+      )
+    end
+  end
+
   test "append/2: appending to a string value", %{conn: conn} do
     first_key = "FIRSTKEY"
     first_val = "FIRSTVAL+"

@@ -298,6 +298,21 @@ defmodule FakeRedisTest do
     assert 0 === FakeRedis.strlen!(conn, empty_key)
   end
 
+  test "append/2: appending to a string value", %{conn: conn} do
+    first_key = "FIRSTKEY"
+    first_val = "FIRSTVAL+"
+    first_append = "FIRSTAPPEND"
+    second_key = "SECONDKEY"
+    second_append = "SECONDAPPEND"
+
+    assert "OK" = FakeRedis.set!(conn, [first_key, first_val])
+    assert first_val === FakeRedis.get!(conn, first_key)
+    assert String.length(first_val <> first_append) === FakeRedis.append!(conn, [first_key, first_append])
+    assert first_val <> first_append === FakeRedis.get!(conn, first_key)
+    assert String.length(second_append) === FakeRedis.append!(conn, [second_key, second_append])
+    assert second_append === FakeRedis.get!(conn, second_key)
+  end
+
   test "pexpire/2, pttl/1: expiring keys in ms after set", %{conn: conn} do
     example_key = "PEXPIREKEY"
     example_val = "PEXPIREVAL"

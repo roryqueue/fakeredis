@@ -482,16 +482,24 @@ defmodule FakeRedis do
 
 
   # needs lock
-  def append(conn, [key, value]) do
-    {status, result} = get(conn, key)
+  def append(conn, [key, append_value]) do
+    {status, result} = get_with_exp(conn, key)
     if status === :ok do
-      if is_nil(value) do
-        :ets.insert(conn, {key, {value, nil}})
-        {:ok, String.length(value)}
+      {original_value, expire_time} = result
+      if is_nil(original_value) do
+        {set_status, set_result} = set(conn, [key, append_value])
+        if set_status === :ok do
+          {:ok, String.length(append_value)}
+        else
+          {set_status, set_result}
+        end
       else
-        {initial_value, ttl} = result
-        new_value = initial_value <> value
-        :ets.update_element(conn, key, {0, new_value})
+        new_value = original_value <> append_value
+        :ets.update_element(
+          conn,
+          key,
+          {2, {new_value, expire_time}}
+        )
         {:ok, String.length(new_value)}
       end
     else

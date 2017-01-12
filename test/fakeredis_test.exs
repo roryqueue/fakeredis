@@ -405,6 +405,27 @@ defmodule FakeRedisTest do
     assert [] === FakeRedis.hvals!(conn, [empty_key])
   end
 
+  test "hexists/2: checking if a subvalue exists in a hash entry", %{conn: conn} do
+    test_key = "TESTKEY"
+    test_map = %{first_subkey: "first_subval", second_subkey: "second_subval"}
+    empty_key = "EMPTYKEY"
+
+    assert "OK" = FakeRedis.set!(conn, [test_key, test_map])
+    assert 1 === FakeRedis.hexists!(conn, [test_key, :first_subkey])
+    assert 0 === FakeRedis.hexists!(conn, [test_key, :fake_subkey])
+    assert 0 === FakeRedis.hexists!(conn, [empty_key, :first_subkey])
+  end
+
+  test "hlen/2: checking the size of a hash entry", %{conn: conn} do
+    test_key = "TESTKEY"
+    test_map = %{first_subkey: "first_subval", second_subkey: "second_subval"}
+    empty_key = "EMPTYKEY"
+
+    assert "OK" = FakeRedis.set!(conn, [test_key, test_map])
+    assert 2 === FakeRedis.hlen!(conn, test_key)
+    assert 0 === FakeRedis.hlen!(conn, empty_key)
+  end
+
   test "pexpire/2, pttl/1: expiring keys in ms after set", %{conn: conn} do
     example_key = "PEXPIREKEY"
     example_val = "PEXPIREVAL"

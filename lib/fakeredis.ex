@@ -654,9 +654,9 @@ defmodule FakeRedis do
   end
 
   def hexists(conn, [hash_key, element_key]) do
-    {status, result} = hget(conn, [hash_key, element_key])
+    {status, result} = hkeys(conn, hash_key)
     if status === :ok do
-      {status, !is_nil(result)}
+      {status, bool_to_int(element_key in result)}
     else
       {status, result}
     end
@@ -665,9 +665,9 @@ defmodule FakeRedis do
   def hlen(conn, [key | _tail]), do: hlen(conn, key)
 
   def hlen(conn, key) do
-    {status, result} = get(conn, key)
+    {status, result} = hkeys(conn, key)
     if status === :ok do
-      {status, result |> Map.to_list |> length}
+      {status, length(result)}
     else
       {status, result}
     end

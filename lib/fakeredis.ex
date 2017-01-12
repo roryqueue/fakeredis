@@ -16,7 +16,7 @@ defmodule FakeRedis do
       :mget, :expire, :expireat, :pexpire, :pexpireat, :ttl, :pttl,
       :exists, :del, :persist, :incr, :incrby, :decr, :decrby,
       :strlen,:append, :getrange, :setrange, :hget, :hgetall, :hmget,
-      :hkeys, :hvals, :hexists, :hlen, :hdel, :hset, :hsetnx, :hincr,
+      :hkeys, :hvals, :hexists, :hlen, :hdel, :hset, :hsetnx, :hincrby,
       :lpushall, :lpush, :lpushx, :rpush, :rpushx, :llen, :lpop, :rpop,
       :rpoplpush, :lset, :lindex, :linsert, :ltrim, :lrem
     ], fn (name) ->
@@ -754,16 +754,32 @@ defmodule FakeRedis do
   end
 
   # needs lock
-  def hincr(conn, [hash_key, element_key, increment]) do
-    {status, result} = get(conn, hash_key)
+  def hincrby(conn, [hash_key, element_key, increment]) do
+    {status, result} = get_with_exp(conn, hash_key)
     if status === :ok do
-      if is_nil(result) do
-        {status, result}
+      {value, expire_time} = result
+
+      if is_nil(value) do
+        {set_status, set_value} = set(
+          conn,
+          [hash_key, %{element_key => increment}]
+        )
+        if set_status === :ok do
+          {:ok, increment}
+        else
+          {set_status, set_value}
+        end
       else
-          updated_value = Map.get(result, element_key, 0) + increment
-          updated_map = Map.put(result, element_key, updated_value)
-          :ets.update_element(conn, hash_key, {0, updated_map})
-        {status, updated_value}
+        updated_count = 
+          Map.get(value, element_key, 0) + make_sure_is_int(increment)
+        updated_map = Map.put(value, element_key, updated_count)
+
+        :ets.update_element(
+          conn,
+          hash_key,
+          {2, {updated_map, expire_time}}
+        )
+        {:ok, updated_count}
       end
     else
       {status, result}

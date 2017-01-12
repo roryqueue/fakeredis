@@ -477,6 +477,28 @@ defmodule FakeRedisTest do
     } === FakeRedis.get!(conn, test_key)
   end
 
+  test "hincrby/2: incrementing a subelement in a hash field", %{conn: conn} do
+    test_key = "TESTKEY"
+    first_subval = 4
+    second_subval = 7
+    test_map = %{first_subkey: first_subval, second_subkey: second_subval}
+    empty_subkey = :empty_subkey
+    empty_key = "EMPTYKEY"
+    increment = 2
+
+    assert "OK" = FakeRedis.set!(conn, [test_key, test_map])
+    assert first_subval + increment ===
+      FakeRedis.hincrby!(conn, [test_key, :first_subkey, increment])
+    assert increment === FakeRedis.hincrby!(conn, [test_key, empty_subkey, increment])
+    assert %{
+      first_subkey: first_subval + increment,
+      second_subkey: second_subval,
+      empty_subkey: increment
+    } === FakeRedis.get!(conn, test_key)
+    assert increment ===
+      FakeRedis.hincrby!(conn, [empty_key, empty_subkey, increment])
+    assert %{empty_subkey: increment} === FakeRedis.get!(conn, empty_key)
+  end
 
   test "pexpire/2, pttl/1: expiring keys in ms after set", %{conn: conn} do
     example_key = "PEXPIREKEY"

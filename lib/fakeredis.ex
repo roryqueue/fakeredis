@@ -562,14 +562,17 @@ defmodule FakeRedis do
   end
 
 
-  defp to_untupled_list(initial_map) when is_map(initial_map) do
-    initial_map |> Map.to_list |> to_untupled_list
+
+
+  defp to_untupled_list(input, result \\ [])
+  defp to_untupled_list([], result), do: Enum.reverse(result)
+  defp to_untupled_list([{key, value} | tail], result) do
+    to_untupled_list(tail, [value, key | result])
   end
 
-  defp to_untupled_list([{key, value} | tail], result \\ []) do
-    to_untupled_list(tail, [key, value | result])
+  defp to_untupled_list(initial_map, result) when is_map(initial_map) do
+    initial_map |> Map.to_list |> to_untupled_list(result)
   end
-
 
   def hget(conn, [hash_key, element_key]) do
     {status, result} = get(conn, hash_key)
@@ -610,7 +613,11 @@ defmodule FakeRedis do
   def hgetall(conn, key) do
     {status, result} = get(conn, key)
     if status === :ok do
-      hgetall(conn, to_untupled_list(result))
+      if is_nil(result) do
+        {:ok, []}
+      else
+        {:ok, to_untupled_list(result)}
+      end
     else
       {status, result}
     end

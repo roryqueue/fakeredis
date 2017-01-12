@@ -374,6 +374,17 @@ defmodule FakeRedisTest do
       FakeRedis.hmget!(conn, [empty_key, :first_subkey, "second_subkey", :empty_subkey])
   end
 
+  test "hgetall/2: accessing all subkeys of a map entry", %{conn: conn} do
+    test_key = "TESTKEY"
+    test_map = %{first_subkey: "first_subval", second_subkey: "second_subval"}
+    empty_key = "EMPTYKEY"
+
+    assert "OK" = FakeRedis.set!(conn, [test_key, test_map])
+    assert [:first_subkey, "first_subval", :second_subkey, "second_subval"] ===
+      FakeRedis.hgetall!(conn, test_key)
+    assert [] === FakeRedis.hgetall!(conn, [empty_key])
+  end
+
   test "pexpire/2, pttl/1: expiring keys in ms after set", %{conn: conn} do
     example_key = "PEXPIREKEY"
     example_val = "PEXPIREVAL"

@@ -350,6 +350,18 @@ defmodule FakeRedisTest do
     assert second_append === FakeRedis.get!(conn, second_key)
   end
 
+  test "hget/2: accessing subkeys of map entries", %{conn: conn} do
+    test_key = "TESTKEY"
+    test_map = %{first_subkey: "first_subval", second_subkey: "second_subval"}
+    empty_key = "EMPTYKEY"
+
+    assert "OK" = FakeRedis.set!(conn, [test_key, test_map])
+    assert "first_subval" === FakeRedis.hget!(conn, [test_key, :first_subkey])
+    assert "second_subval" === FakeRedis.hget!(conn, [test_key, "second_subkey"])
+    assert nil === FakeRedis.hget!(conn, [test_key, :empty_subkey])
+    assert nil === FakeRedis.hget!(conn, [empty_key, :first_subkey])
+  end
+
   test "pexpire/2, pttl/1: expiring keys in ms after set", %{conn: conn} do
     example_key = "PEXPIREKEY"
     example_val = "PEXPIREVAL"

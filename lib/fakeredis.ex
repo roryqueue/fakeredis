@@ -574,7 +574,15 @@ defmodule FakeRedis do
   def hget(conn, [hash_key, element_key]) do
     {status, result} = get(conn, hash_key)
     if status === :ok do
-      {status, result[element_key]}
+      if is_nil(result) do
+        {:ok, nil}
+      else
+        if is_nil(result[element_key]) and is_bitstring(element_key) do
+          {:ok, result[String.to_atom(element_key)]}
+        else
+          {:ok, result[element_key]}
+        end
+      end
     else
       {status, result}
     end

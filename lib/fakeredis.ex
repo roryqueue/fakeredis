@@ -628,7 +628,11 @@ defmodule FakeRedis do
   def hkeys(conn, key) do
     {status, result} = get(conn, key)
     if status === :ok do
-      {status, Map.keys(result)}
+      if is_map(result) do
+        {:ok, Map.keys(result)}
+      else
+        {:ok, []}
+      end
     else
       {status, result}
     end
@@ -639,7 +643,11 @@ defmodule FakeRedis do
   def hvals(conn, key) do
     {status, result} = get(conn, key)
     if status === :ok do
-      {status, Map.values(result)}
+      if is_map(result) do
+        {:ok, Map.values(result)}
+      else
+        {:ok, []}
+      end
     else
       {status, result}
     end

@@ -588,20 +588,21 @@ defmodule FakeRedis do
     end
   end
 
-  defp hmget(conn, command_args, get_result, return_array \\ [])
-  defp hmget(_conn, [], _get_result, return_array), do: {:ok, return_array}
-
-  defp hmget(conn, [next_arg | remaining_args], get_result, return_array) do
-    hmget(conn, remaining_args, get_result, [get_result[next_arg] | return_array])
+  defp hmget(_conn, [], _hash_key, return_array) do
+    {:ok, Enum.reverse(return_array)}
   end
 
-  def hmget(conn, [next_arg | remaining_args]) do
-    {status, result} = get(conn, next_arg)
+  defp hmget(conn, [next_subkey | remaining_subkeys], hash_key, return_array) do
+    {status, result} = hget(conn, [hash_key, next_subkey])
     if status === :ok do
-      hmget(conn, remaining_args, result)
+      hmget(conn, remaining_subkeys, hash_key, [result | return_array])
     else
       {status, result}
     end
+  end
+
+  def hmget(conn, [hash_key | subkeys]) do
+    hmget(conn, subkeys, hash_key, [])
   end
 
   def hgetall(conn, [key | _tail]), do: hgetall(conn, key)
@@ -614,7 +615,6 @@ defmodule FakeRedis do
       {status, result}
     end
   end
-
 
   def hkeys(conn, [key | _tail]), do: hkeys(conn, key)
 

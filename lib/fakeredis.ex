@@ -673,16 +673,42 @@ defmodule FakeRedis do
     end
   end
 
+
+  defp popall(starting_map, keys_to_pop, popped_values \\ [])
+
+  defp popall(ending_map, [], popped_values) do
+    {popped_values, ending_map}
+  end
+
+  defp popall(starting_map, [next_key | remaining_keys], popped_values) do
+    key_exists = Map.has_key?(starting_map, next_key)
+    {value, remaining_map} = Map.pop(starting_map, next_key)
+
+    updated_values = if key_exists do
+      [value | popped_values]
+    else
+      popped_values
+    end
+    popall(remaining_map, remaining_keys, updated_values)
+  end
+
   # needs lock
-  def hdel(conn, [hash_key, element_key]) do
-    {status, result} = get(conn, hash_key)
+  def hdel(conn, [hash_key | element_keys]) do
+    {status, result} = get_with_exp(conn, hash_key)
+
     if status === :ok do
-      if is_nil(result) do
-        {status, result}
+      {value, expire_time} = result
+
+      if is_nil(value) do
+        {:ok, 0}
       else
-        {element, remaining_map} = Map.pop(result, element_key)
-        :ets.update_element(conn, hash_key, {0, remaining_map})
-        {status, element}
+        {popped_elements, updated_hash} = popall(value, element_keys)
+        :ets.update_element(
+          conn,
+          hash_key,
+          {2, {updated_hash, expire_time}}
+        )
+        {:ok, length(popped_elements)}
       end
     else
       {status, result}
@@ -691,17 +717,32 @@ defmodule FakeRedis do
 
   # needs lock
   def hset(conn, [hash_key, element_key, element_value], nx \\ false) do
-    {status, result} = get(conn, hash_key)
+    {status, result} = get_with_exp(conn, hash_key)
     if status === :ok do
-      if is_nil(result) do
-        {status, result}
+      {value, expire_time} = result
+
+      if is_nil(value) do
+        {set_status, set_value} = set(
+          conn,
+          [hash_key, %{element_key => element_value}]
+        )
+        if set_status === :ok do
+          {:ok, 1}
+        else
+          {set_status, set_value}
+        end
+
       else
-        key_exists = Map.has_key?(result, element_key)
+        key_exists = Map.has_key?(value, element_key)
         unless key_exists and nx do
-          updated_map = Map.put(result, element_key, element_value)
-          :ets.update_element(conn, hash_key, {0, updated_map})
-        end        
-        {status, !key_exists}
+          updated_map = Map.put(value, element_key, element_value)
+          :ets.update_element(
+            conn,
+            hash_key,
+            {2, {updated_map, expire_time}}
+          )
+        end
+        {:ok, bool_to_int(!key_exists)}
       end
     else
       {status, result}

@@ -426,6 +426,58 @@ defmodule FakeRedisTest do
     assert 0 === FakeRedis.hlen!(conn, empty_key)
   end
 
+  test "hdel/2: deleting a subkey of a hash entry", %{conn: conn} do
+    test_key = "TESTKEY"
+    test_map = %{
+      first_subkey: "first_subval",
+      second_subkey: "second_subval",
+      third_subkey: "third_subval"
+    }
+    empty_key = "EMPTYKEY"
+
+    assert "OK" = FakeRedis.set!(conn, [test_key, test_map])
+    assert 2 === FakeRedis.hdel!(conn, [test_key, :first_subkey, :second_subkey])
+    assert nil === FakeRedis.hget!(conn, [test_key, :first_subkey])
+    assert test_map[:third_subkey] === FakeRedis.hget!(conn, [test_key, :third_subkey])
+    assert 0 === FakeRedis.hdel!(conn, empty_key)
+  end
+
+  test "hset/2: setting a subkey within a hash field", %{conn: conn} do
+    test_key = "TESTKEY"
+    test_map = %{first_subkey: "first_subval", second_subkey: "second_subval"}
+    update_subkey = :update_subkey
+    update_subvalue = "update_subvalue"
+    empty_key = "EMPTYKEY"
+
+    assert "OK" = FakeRedis.set!(conn, [test_key, test_map])
+    assert 0 === FakeRedis.hset!(conn, [test_key, :first_subkey, update_subvalue])
+    assert 1 === FakeRedis.hset!(conn, [test_key, update_subkey, update_subvalue])
+    assert %{
+      first_subkey: update_subvalue,
+      second_subkey: "second_subval",
+      update_subkey: update_subvalue
+    } === FakeRedis.get!(conn, test_key)
+    assert 1 === FakeRedis.hset!(conn, [empty_key, update_subkey, update_subvalue])
+    assert %{update_subkey => update_subvalue} === FakeRedis.get!(conn, empty_key)
+  end
+
+  test "hsetnx/2: setting a subkey within a hash field if it does not exist", %{conn: conn} do
+    test_key = "TESTKEY"
+    test_map = %{first_subkey: "first_subval", second_subkey: "second_subval"}
+    update_subkey = :update_subkey
+    update_subvalue = "update_subvalue"
+
+    assert "OK" = FakeRedis.set!(conn, [test_key, test_map])
+    assert 0 === FakeRedis.hsetnx!(conn, [test_key, :first_subkey, update_subvalue])
+    assert 1 === FakeRedis.hsetnx!(conn, [test_key, update_subkey, update_subvalue])
+    assert %{
+      first_subkey: "first_subval",
+      second_subkey: "second_subval",
+      update_subkey: update_subvalue
+    } === FakeRedis.get!(conn, test_key)
+  end
+
+
   test "pexpire/2, pttl/1: expiring keys in ms after set", %{conn: conn} do
     example_key = "PEXPIREKEY"
     example_val = "PEXPIREVAL"

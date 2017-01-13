@@ -791,41 +791,55 @@ defmodule FakeRedis do
 
   defp lpushall([next_value | remaining_values], target_array) do
     target_array = if(is_nil(target_array), do: [], else: target_array)
-    lpushall(remaining_values, [next_value, target_array])
+    lpushall(remaining_values, [next_value | target_array])
+  end
+
+  defp rpushall(pushed_array, target_array) do
+    target_array ++ pushed_array
   end
 
   # needs lock
-  def lpush(conn, [key | values], xx \\ false) do
-    {status, result} = get(conn, key)
+  def push(conn, [key | new_values], xx \\ false, pushall_func) do
+    {status, result} = get_with_exp(conn, key)
     if status === :ok do
-      if xx and is_nil(result) do
-        {status, 0}
+      {original_array, expire_time} = result
+
+      if is_nil(original_array) do
+        if xx do
+          {status, 0}
+        else
+          set_array = pushall_func.(new_values, [])
+          {set_status, set_value} = set(conn, [key, set_array])
+          if set_status === :ok do
+            {:ok, length(set_array)}
+          else
+            {set_status, set_value}
+          end
+        end
       else
-        updated_array = lpushall(values, result)
-        :ets.update_element(conn, key, {0, updated_array})
+        updated_array = pushall_func.(new_values, original_array)
+
+        :ets.update_element(
+          conn,
+          key,
+          {2, {updated_array, expire_time}}
+        )
         {status, length(updated_array)}
       end
     else
       {status, result}
     end
+  end
+
+  def lpush(conn, command_args, xx \\ false) do
+    push(conn, command_args, xx, &lpushall/2)
   end
 
   def lpushx(conn, command_args), do: lpush(conn, command_args, true)
 
   # needs lock
-  def rpush(conn, [key | values], xx \\ false) do
-    {status, result} = get(conn, key)
-    if status === :ok do
-      if xx and is_nil(result) do
-        {status, 0}
-      else
-        updated_array = if(is_nil(result), do: [], else: result) ++ values
-        :ets.update_element(conn, key, {0, updated_array})
-        {status, length(updated_array)}
-      end
-    else
-      {status, result}
-    end
+  def rpush(conn, command_args, xx \\ false) do
+    push(conn, command_args, xx, &rpushall/2)
   end
 
   def rpushx(conn, command_args), do: rpush(conn, command_args, true)

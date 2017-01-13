@@ -500,6 +500,104 @@ defmodule FakeRedisTest do
     assert %{empty_subkey: increment} === FakeRedis.get!(conn, empty_key)
   end
 
+  test "lpush/2: prepend to an array value", %{conn: conn} do
+    populated_key = "POPULATEDKEY"
+    empty_key = "EMPTYKEY"
+
+    first_val = "FIRSTVAL"
+    second_val = "SECONDVAL"
+    first_added_val = "FIRSTADDEDVAL"
+    second_added_val = "SECONDADDEDVAL"
+    full_array = [first_val, second_val]
+
+    assert "OK" = FakeRedis.set!(conn, [populated_key, full_array])
+    assert 4 = FakeRedis.lpush!(
+      conn,
+      [populated_key, first_added_val, second_added_val]
+    )
+    assert [second_added_val, first_added_val | full_array] ===
+      FakeRedis.get!(conn, populated_key)
+    assert 2 = FakeRedis.lpush!(
+      conn,
+      [empty_key, first_added_val, second_added_val]
+    )
+    assert [second_added_val, first_added_val] ===
+      FakeRedis.get!(conn, empty_key)
+  end
+
+  test "lpushx/2: prepend to an array value if array exists", %{conn: conn} do
+    populated_key = "POPULATEDKEY"
+    empty_key = "EMPTYKEY"
+
+    first_val = "FIRSTVAL"
+    second_val = "SECONDVAL"
+    first_added_val = "FIRSTADDEDVAL"
+    second_added_val = "SECONDADDEDVAL"
+    full_array = [first_val, second_val]
+
+    assert "OK" = FakeRedis.set!(conn, [populated_key, full_array])
+    assert 4 = FakeRedis.lpushx!(
+      conn,
+      [populated_key, first_added_val, second_added_val]
+    )
+    assert [second_added_val, first_added_val | full_array] ===
+      FakeRedis.get!(conn, populated_key)
+    assert 0 = FakeRedis.lpushx!(
+      conn,
+      [empty_key, first_added_val, second_added_val]
+    )
+    assert nil === FakeRedis.get!(conn, empty_key)
+  end
+
+  test "rpush/2: append to an array value", %{conn: conn} do
+    populated_key = "POPULATEDKEY"
+    empty_key = "EMPTYKEY"
+
+    first_val = "FIRSTVAL"
+    second_val = "SECONDVAL"
+    first_added_val = "FIRSTADDEDVAL"
+    second_added_val = "SECONDADDEDVAL"
+    full_array = [first_val, second_val]
+
+    assert "OK" = FakeRedis.set!(conn, [populated_key, full_array])
+    assert 4 = FakeRedis.rpush!(
+      conn,
+      [populated_key, first_added_val, second_added_val]
+    )
+    assert full_array ++ [first_added_val, second_added_val] ===
+      FakeRedis.get!(conn, populated_key)
+    assert 2 = FakeRedis.rpush!(
+      conn,
+      [empty_key, first_added_val, second_added_val]
+    )
+    assert [first_added_val, second_added_val] ===
+      FakeRedis.get!(conn, empty_key)
+  end
+
+  test "rpushx/2: append to an array value if array exists", %{conn: conn} do
+    populated_key = "POPULATEDKEY"
+    empty_key = "EMPTYKEY"
+
+    first_val = "FIRSTVAL"
+    second_val = "SECONDVAL"
+    first_added_val = "FIRSTADDEDVAL"
+    second_added_val = "SECONDADDEDVAL"
+    full_array = [first_val, second_val]
+
+    assert "OK" = FakeRedis.set!(conn, [populated_key, full_array])
+    assert 4 = FakeRedis.rpushx!(
+      conn,
+      [populated_key, first_added_val, second_added_val]
+    )
+    assert full_array ++ [first_added_val, second_added_val] ===
+      FakeRedis.get!(conn, populated_key)
+    assert 0 = FakeRedis.rpushx!(
+      conn,
+      [empty_key, first_added_val, second_added_val]
+    )
+    assert nil === FakeRedis.get!(conn, empty_key)
+  end
+
   test "pexpire/2, pttl/1: expiring keys in ms after set", %{conn: conn} do
     example_key = "PEXPIREKEY"
     example_val = "PEXPIREVAL"

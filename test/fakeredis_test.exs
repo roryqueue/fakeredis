@@ -616,6 +616,34 @@ defmodule FakeRedisTest do
     end
   end
 
+  test "lpop/2: pop the leftmost subvalue of an array", %{conn: conn} do
+    test_key = "TESTKEY"
+    first_val = "FIRSTVAL"
+    second_val = "SECONDVAL"
+    third_val = "THIRDVAL"
+    full_array = [first_val, second_val, third_val]
+    empty_key = "EMPTYKEY"
+
+    assert "OK" = FakeRedis.set!(conn, [test_key, full_array])
+    assert first_val === FakeRedis.lpop!(conn, test_key)
+    assert [second_val, third_val] === FakeRedis.get!(conn, test_key)
+    assert nil === FakeRedis.lpop!(conn, empty_key)
+  end
+
+  test "rpop/2: pop the rightmost subvalue of an array", %{conn: conn} do
+    test_key = "TESTKEY"
+    first_val = "FIRSTVAL"
+    second_val = "SECONDVAL"
+    third_val = "THIRDVAL"
+    full_array = [first_val, second_val, third_val]
+    empty_key = "EMPTYKEY"
+
+    assert "OK" = FakeRedis.set!(conn, [test_key, full_array])
+    assert third_val === FakeRedis.rpop!(conn, test_key)
+    assert [first_val, second_val] === FakeRedis.get!(conn, test_key)
+    assert nil === FakeRedis.rpop!(conn, empty_key)
+  end
+
   test "pexpire/2, pttl/1: expiring keys in ms after set", %{conn: conn} do
     example_key = "PEXPIREKEY"
     example_val = "PEXPIREVAL"

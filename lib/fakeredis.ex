@@ -865,13 +865,19 @@ defmodule FakeRedis do
 
   # needs lock
   def lpop(conn, key) do
-    {status, result} = get(conn, key)
+    {status, result} = get_with_exp(conn, key)
     if status === :ok do
-      if is_nil(result) or result === [] do
+      {value, expire_time} = result
+
+      if is_nil(value) or value === [] do
         {status, nil}
       else
-        [return_val | updated_array] = result
-        :ets.update_element(conn, key, {0, updated_array})
+        [return_val | updated_array] = value
+        :ets.update_element(
+          conn,
+          key,
+          {2, {updated_array, expire_time}}
+        )
         {status, return_val}
       end
     else
@@ -883,21 +889,27 @@ defmodule FakeRedis do
 
   # needs lock
   def rpop(conn, key) do
-    {status, result} = get(conn, key)
+    {status, result} = get_with_exp(conn, key)
     if status === :ok do
-      if is_nil(result) or result === [] do
+      {value, expire_time} = result
+
+      if is_nil(value) or value === [] do
         {status, nil}
       else
         # when elixir 1.4 is stable, use pop_at instead
-        last_item = Enum.at(result, -1)
-        :ets.update_element(conn, key, {0, List.delete_at(result, -1)})
+        last_item = Enum.at(value, -1)
+
+        :ets.update_element(
+          conn,
+          key,
+          {2, {List.delete_at(value, -1), expire_time}}
+        )
         {status, last_item}
       end
     else
       {status, result}
     end
   end
-
 
   # needs lock
   def rpoplpush(conn, [pop_key, push_key]) do

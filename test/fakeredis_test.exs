@@ -690,6 +690,23 @@ defmodule FakeRedisTest do
     assert nil === FakeRedis.lindex!(conn, [test_key, 3])
   end
 
+  test "linsert/2: add a subelement to an array by index", %{conn: conn} do
+    test_key = "FIRSTKEY"
+    first_val = "FIRSTVAL"
+    second_val = "SECONDVAL"
+    third_val = "THIRDVAL"
+    fourth_val = "FOURTHVAL"
+    starting_array = [first_val, second_val]
+
+    assert "OK" = FakeRedis.set!(conn, [test_key, starting_array])
+    assert 3 === FakeRedis.linsert!(conn, [test_key, "BEFORE", first_val, third_val])
+    assert [third_val, first_val, second_val] ===
+      FakeRedis.get!(conn, test_key)
+    assert 4 === FakeRedis.linsert!(conn, [test_key, "AFTER", first_val, fourth_val])
+    assert [third_val, first_val, fourth_val, second_val] ===
+      FakeRedis.get!(conn, test_key)
+  end
+
   test "pexpire/2, pttl/1: expiring keys in ms after set", %{conn: conn} do
     example_key = "PEXPIREKEY"
     example_val = "PEXPIREVAL"

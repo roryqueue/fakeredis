@@ -949,7 +949,6 @@ defmodule FakeRedis do
   end
 
 
-
   def lindex(conn, [key, index]) do
     {status, result} = get(conn, key)
     if status === :ok do
@@ -961,16 +960,18 @@ defmodule FakeRedis do
 
   # needs lock
   def linsert(conn, [key, before_or_after, pivot, value]) do
-    {status, result} = get(conn, key)
+    {status, result} = get_with_exp(conn, key)
     if status === :ok do
-      pivot_index = Enum.find_index(result, fn (element) -> element === pivot end)
+      {starting_list, expire_time} = result
+
+      pivot_index = Enum.find_index(starting_list, fn (element) -> element === pivot end)
 
       if is_nil(pivot_index) do
         {:ok, -1}
       else
         insert_index = if(before_or_after == "AFTER", do: pivot_index + 1, else: pivot_index)
-        updated_list = List.insert_at(result, insert_index, value)
-        :ets.update_element(conn, key, {0, updated_list})
+        updated_list = List.insert_at(starting_list, insert_index, value)
+        :ets.update_element(conn, key, {2, {updated_list, expire_time}})
         {:ok, length(updated_list)}
       end
     else

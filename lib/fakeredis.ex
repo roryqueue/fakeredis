@@ -238,7 +238,7 @@ defmodule FakeRedis do
     end
   end
 
-  # needs lock
+  # thread unsafe
   def getset(conn, command_args) do
     {get_status, get_result} = get(conn, command_args)
     if get_status === :ok do
@@ -292,7 +292,7 @@ defmodule FakeRedis do
     )
   end
 
-  # needs lock
+  # thread unsafe
   def pexpireat(conn, [key, expiry_time]) do
     expiry_time = if is_bitstring(expiry_time) do
       String.to_integer(expiry_time)
@@ -384,7 +384,7 @@ defmodule FakeRedis do
 
   def persist(conn, [key | _tail]), do: persist(conn, key)
 
-  # needs lock
+  # thread unsafe
   def persist(conn, key) do
     pexpireat(conn, [key, nil])
   end
@@ -427,7 +427,7 @@ defmodule FakeRedis do
     incrby(conn, [key, 1])
   end
 
-  # needs lock
+  # thread unsafe
   def incrby(conn, [key, increment]) do
     {status, result} = get_with_exp(conn, key)
     if status === :ok do
@@ -481,7 +481,7 @@ defmodule FakeRedis do
   end
 
 
-  # needs lock
+  # thread unsafe
   def append(conn, [key, append_value]) do
     {status, result} = get_with_exp(conn, key)
     if status === :ok do
@@ -520,7 +520,7 @@ defmodule FakeRedis do
     end
   end
 
-  # needs lock
+  # thread unsafe
   def setrange(conn, [key, offset, addition]) do
     {status, result} = get_with_exp(conn, key)
     if status === :ok do
@@ -692,7 +692,7 @@ defmodule FakeRedis do
     popall(remaining_map, remaining_keys, updated_values)
   end
 
-  # needs lock
+  # thread unsafe
   def hdel(conn, [hash_key | element_keys]) do
     {status, result} = get_with_exp(conn, hash_key)
 
@@ -715,7 +715,7 @@ defmodule FakeRedis do
     end
   end
 
-  # needs lock
+  # thread unsafe
   def hset(conn, [hash_key, element_key, element_value], nx \\ false) do
     {status, result} = get_with_exp(conn, hash_key)
     if status === :ok do
@@ -753,7 +753,7 @@ defmodule FakeRedis do
     hset(conn, [hash_key, element_key, element_value], true)
   end
 
-  # needs lock
+  # thread unsafe
   def hincrby(conn, [hash_key, element_key, increment]) do
     {status, result} = get_with_exp(conn, hash_key)
     if status === :ok do
@@ -798,7 +798,7 @@ defmodule FakeRedis do
     target_array ++ pushed_array
   end
 
-  # needs lock
+  # thread unsafe
   def push(conn, [key | new_values], xx \\ false, pushall_func) do
     {status, result} = get_with_exp(conn, key)
     if status === :ok do
@@ -837,7 +837,7 @@ defmodule FakeRedis do
 
   def lpushx(conn, command_args), do: lpush(conn, command_args, true)
 
-  # needs lock
+  # thread unsafe
   def rpush(conn, command_args, xx \\ false) do
     push(conn, command_args, xx, &rpushall/2)
   end
@@ -847,7 +847,7 @@ defmodule FakeRedis do
 
   def llen(conn, [key | _tail]), do: llen(conn, key)
 
-  # needs lock
+  # thread unsafe
   def llen(conn, key) do
     {status, result} = get(conn, key)
     if status === :ok do
@@ -863,7 +863,7 @@ defmodule FakeRedis do
 
   def lpop(conn, [key | _tail]), do: lpop(conn, key)
 
-  # needs lock
+  # thread unsafe
   def lpop(conn, key) do
     {status, result} = get_with_exp(conn, key)
     if status === :ok do
@@ -887,7 +887,7 @@ defmodule FakeRedis do
 
   def rpop(conn, [key | _tail]), do: rpop(conn, key)
 
-  # needs lock
+  # thread unsafe
   def rpop(conn, key) do
     {status, result} = get_with_exp(conn, key)
     if status === :ok do
@@ -911,7 +911,7 @@ defmodule FakeRedis do
     end
   end
 
-  # needs lock
+  # thread unsafe
   def rpoplpush(conn, [pop_key, push_key]) do
     {pop_status, pop_result} = rpop(conn, pop_key)
     if pop_status === :ok do
@@ -931,7 +931,7 @@ defmodule FakeRedis do
   end
 
 
-  # needs lock
+  # thread unsafe
   def lset(conn, [key, index, value]) do
     {status, result} = get_with_exp(conn, key)
     if status === :ok do
@@ -958,7 +958,7 @@ defmodule FakeRedis do
     end
   end
 
-  # needs lock
+  # thread unsafe
   def linsert(conn, [key, before_or_after, pivot, value]) do
     {status, result} = get_with_exp(conn, key)
     if status === :ok do
@@ -979,7 +979,7 @@ defmodule FakeRedis do
     end
   end
 
-  # needs lock
+  # thread unsafe
   def ltrim(conn, [key, start_index, end_index]) do
     {status, result} = get_with_exp(conn, key)
     if status === :ok do
@@ -999,11 +999,14 @@ defmodule FakeRedis do
     end
   end
 
-  # needs lock
+  # thread unsafe
   def lrem(conn, [key, count, term]) do
-    {status, result} = get(conn, key)
+    {status, result} = get_with_exp(conn, key)
     if status === :ok do
-      if is_nil(result) do
+      {starting_list, expire_time} = result
+
+
+      if is_nil(starting_list) do
         {status, 0}
       else
         # for negative counts passed, we want to move from left to right
@@ -1012,7 +1015,7 @@ defmodule FakeRedis do
           if(cnt < 0, do: Enum.reverse(lst), else: lst)
         end
 
-        starting_list = reverse_if_negcount.(result, count)
+        starting_list = reverse_if_negcount.(starting_list, count)
         
         {pared_list, return_count} = Enum.flat_map_reduce(
           starting_list,
@@ -1023,7 +1026,7 @@ defmodule FakeRedis do
             # otherwise, we'll count down from the absolute value of our
             # count and only remove matches before we hit zero
             if (count === 0 or accumulator < abs(count)) and (element === term) do
-              {[], accumulator - 1}
+              {[], accumulator + 1}
             else
               {[element], accumulator}
             end
@@ -1031,7 +1034,7 @@ defmodule FakeRedis do
         )
         final_list = reverse_if_negcount.(pared_list, count)
 
-        :ets.update_element(conn, key, {0, final_list})
+        :ets.update_element(conn, key, {2, {final_list, expire_time}})
         {status, return_count}
       end
     else

@@ -707,6 +707,23 @@ defmodule FakeRedisTest do
       FakeRedis.get!(conn, test_key)
   end
 
+  test "ltrim/2: trim an array value by indices", %{conn: conn} do
+    first_key = "FIRSTKEY"
+    second_key = "SECONDKEY"
+    first_val = "FIRSTVAL"
+    second_val = "SECONDVAL"
+    third_val = "THIRDVAL"
+    fourth_val = "FOURTHVAL"
+    starting_array = [first_val, second_val, third_val, fourth_val]
+
+    assert "OK" = FakeRedis.set!(conn, [first_key, starting_array])
+    assert "OK" === FakeRedis.ltrim!(conn, [first_key, 1, 2])
+    assert [second_val, third_val] === FakeRedis.get!(conn, first_key)
+    assert "OK" = FakeRedis.set!(conn, [second_key, starting_array])
+    assert "OK" === FakeRedis.ltrim!(conn, [second_key, 2, 99])
+    assert [third_val, fourth_val] === FakeRedis.get!(conn, second_key)
+  end
+
   test "pexpire/2, pttl/1: expiring keys in ms after set", %{conn: conn} do
     example_key = "PEXPIREKEY"
     example_val = "PEXPIREVAL"

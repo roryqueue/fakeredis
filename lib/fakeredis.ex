@@ -981,9 +981,18 @@ defmodule FakeRedis do
 
   # needs lock
   def ltrim(conn, [key, start_index, end_index]) do
-    {status, result} = get(conn, key)
+    {status, result} = get_with_exp(conn, key)
     if status === :ok do
-      :ets.update_element(conn, key, {0, String.slice(result, start_index..end_index)})
+      {starting_list, expire_time} = result
+
+      :ets.update_element(
+        conn,
+        key,
+        {
+          2,
+          {Enum.slice(starting_list, start_index..end_index), expire_time}
+        }
+      )
       {:ok, "OK"}
     else
       {status, result}

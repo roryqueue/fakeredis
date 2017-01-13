@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/roryqueue/fakeredis.svg)](https://travis-ci.org/roryqueue/fakeredis)
+
+
 # FakeRedis
 
 **FakeRedis recreates the Redis API using only native Erlang/Elixir features, especially [ETS](http://erlang.org/doc/man/ets.html#lookup_element-3)**

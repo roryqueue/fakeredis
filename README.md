@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/roryqueue/fakeredis.svg)](https://travis-ci.org/roryqueue/fakeredis)
+[![Hex.pm](https://img.shields.io/hexpm/v/fakeredis.svg)](https://hex.pm/packages/fakeredis)
 
 
 # FakeRedis

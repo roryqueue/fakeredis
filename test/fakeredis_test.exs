@@ -598,6 +598,24 @@ defmodule FakeRedisTest do
     assert nil === FakeRedis.get!(conn, empty_key)
   end
 
+  test "llen/2: checking the size of a array entry", %{conn: conn} do
+    test_key = "TESTKEY"
+    first_val = "FIRSTVAL"
+    second_val = "SECONDVAL"
+    test_array = [first_val, second_val]
+    empty_key = "EMPTYKEY"
+    wrong_type_key = "WRONGTYPEKEY"
+    wrong_type_val = "WRONGTYPEVAL"
+
+    assert "OK" = FakeRedis.set!(conn, [test_key, test_array])
+    assert 2 === FakeRedis.llen!(conn, test_key)
+    assert 0 === FakeRedis.llen!(conn, empty_key)
+    assert "OK" = FakeRedis.set!(conn, [wrong_type_key, wrong_type_val])
+    assert_raise RuntimeError, "llen only applies to lists and tuples", fn ->
+      FakeRedis.llen!(conn, wrong_type_key)
+    end
+  end
+
   test "pexpire/2, pttl/1: expiring keys in ms after set", %{conn: conn} do
     example_key = "PEXPIREKEY"
     example_val = "PEXPIREVAL"

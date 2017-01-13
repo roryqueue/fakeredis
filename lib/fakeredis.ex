@@ -851,7 +851,11 @@ defmodule FakeRedis do
   def llen(conn, key) do
     {status, result} = get(conn, key)
     if status === :ok do
-      {status, length(if(is_nil(result), do: [], else: result))}
+      if !is_nil(result) and !is_list(result) and !(is_tuple(result)) do
+        {:error, "llen only applies to lists and tuples"}
+      else
+        {status, length(if(is_nil(result), do: [], else: result))}
+      end
     else
       {status, result}
     end   

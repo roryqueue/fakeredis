@@ -344,9 +344,11 @@ defmodule FakeRedisTest do
 
     assert "OK" = FakeRedis.set!(conn, [first_key, first_val])
     assert first_val === FakeRedis.get!(conn, first_key)
-    assert String.length(first_val <> first_append) === FakeRedis.append!(conn, [first_key, first_append])
+    assert String.length(first_val <> first_append) ===
+      FakeRedis.append!(conn, [first_key, first_append])
     assert first_val <> first_append === FakeRedis.get!(conn, first_key)
-    assert String.length(second_append) === FakeRedis.append!(conn, [second_key, second_append])
+    assert String.length(second_append) ===
+      FakeRedis.append!(conn, [second_key, second_append])
     assert second_append === FakeRedis.get!(conn, second_key)
   end
 
@@ -674,6 +676,18 @@ defmodule FakeRedisTest do
     assert "OK" = FakeRedis.lset!(conn, [test_key, 1, fourth_val])
     assert [first_val, fourth_val, third_val] ===
       FakeRedis.get!(conn, test_key)
+  end
+
+  test "lindex/2: find the index of a subelement of an array", %{conn: conn} do
+    test_key = "FIRSTKEY"
+    first_val = "FIRSTVAL"
+    second_val = "SECONDVAL"
+    third_val = "THIRDVAL"
+    starting_array = [first_val, second_val, third_val]
+
+    assert "OK" = FakeRedis.set!(conn, [test_key, starting_array])
+    assert second_val === FakeRedis.lindex!(conn, [test_key, 1])
+    assert nil === FakeRedis.lindex!(conn, [test_key, 3])
   end
 
   test "pexpire/2, pttl/1: expiring keys in ms after set", %{conn: conn} do

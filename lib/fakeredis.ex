@@ -933,14 +933,21 @@ defmodule FakeRedis do
 
   # needs lock
   def lset(conn, [key, index, value]) do
-    {status, result} = get(conn, key)
+    {status, result} = get_with_exp(conn, key)
     if status === :ok do
-      :ets.update_element(conn, key, {0, List.replace_at(result, index, value)})
-      {status, "OK"}
+      {starting_array, expire_time} = result
+
+      :ets.update_element(
+        conn,
+        key,
+        {2, {List.replace_at(starting_array, index, value), expire_time}}
+      )
+      {:ok, "OK"}
     else
       {status, result}
-    end   
+    end
   end
+
 
 
   def lindex(conn, [key, index]) do

@@ -646,7 +646,7 @@ defmodule FakeRedisTest do
 
   test "rpoplpush/2: pop the rightmost subvalue to another array", %{conn: conn} do
     first_key = "FIRSTKEY"
-    second_key = "SECOND_KEY"
+    second_key = "SECONDKEY"
     first_val = "FIRSTVAL"
     second_val = "SECONDVAL"
     third_val = "THIRDVAL"
@@ -660,6 +660,20 @@ defmodule FakeRedisTest do
     assert [first_val] === FakeRedis.get!(conn, first_key)
     assert [second_val, third_val, fourth_val] ===
       FakeRedis.get!(conn, second_key)
+  end
+
+  test "lset/2: set a subelement of an array val by index", %{conn: conn} do
+    test_key = "FIRSTKEY"
+    first_val = "FIRSTVAL"
+    second_val = "SECONDVAL"
+    third_val = "THIRDVAL"
+    fourth_val = "FOURTHVAL"
+    starting_array = [first_val, second_val, third_val]
+
+    assert "OK" = FakeRedis.set!(conn, [test_key, starting_array])
+    assert "OK" = FakeRedis.lset!(conn, [test_key, 1, fourth_val])
+    assert [first_val, fourth_val, third_val] ===
+      FakeRedis.get!(conn, test_key)
   end
 
   test "pexpire/2, pttl/1: expiring keys in ms after set", %{conn: conn} do

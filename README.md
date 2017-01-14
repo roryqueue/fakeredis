@@ -53,7 +53,7 @@ Command behavior matches the [Redis command API](https://redis.io/commands/), us
     "value"
     ```
 
-Supported commands are keys, set, setnx, setex, psetex, mset, msetnx, get, getset, mget, expire, expireat, pexpire, pexpireat, ttl, pttl, exists, del, persist, incr, incrby, decr, decrby, strlen, append, getrange, setrange, hget, hgetall, hmget, hkeys, hvals, hexists, hlen, hdel, hset, hsetnx, hincrby, lpushall, lpush, lpushx, rpush, rpushx, llen, lpop, rpop, rpoplpush, lset, lindex, linsert, ltrim, lrem.
+Supported commands are `keys`, `set`, `setnx`, `setex`, `psetex`, `mset`, `msetnx`, `get`, `getset`, `mget`, `expire`, `expireat`, `pexpire`, `pexpireat`, `ttl`, `pttl`, `exists`, `del`, `persist`, `incr`, `incrby`, `decr`, `decrby`, `strlen`, `append`, `getrange`, `setrange`, `hget`, `hgetall`, `hmget`, `hkeys`, `hvals`, `hexists`, `hlen`, `hdel`, `hset`, `hsetnx`, `hincrby`, `lpushall`, `lpush`, `lpushx`, `rpush`, `rpushx`, `llen`, `lpop`, `rpop`, `rpoplpush`, `lset`, `lindex`, `linsert`, `ltrim`, `lrem`.
 
 ## Installation
 

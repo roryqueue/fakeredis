@@ -22,7 +22,7 @@ Command behavior matches the [Redis command API](https://redis.io/commands/), us
     ```elixir
     iex(1)> {status, result} = FakeRedis.set(connection, ["key", "value"])
     {:ok, "OK"}
-    iex(1)> {status, result} = FakeRedis.set(connection, "key")
+    iex(1)> {status, result} = FakeRedis.get(connection, "key")
     {:ok, "value"}
     ```
 
@@ -31,7 +31,7 @@ Command behavior matches the [Redis command API](https://redis.io/commands/), us
     ```elixir
     iex(1)> result = FakeRedis.set!(connection, ["key", "value"])
     "OK"
-    iex(1)> result = FakeRedis.set!(connection, "key")
+    iex(1)> result = FakeRedis.get!(connection, "key")
     "value"
     ```
 

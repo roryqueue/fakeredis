@@ -6,9 +6,7 @@
 
 **FakeRedis recreates the Redis API using only native Erlang/Elixir features, especially [ETS](http://erlang.org/doc/man/ets.html#lookup_element-3).**
 
-## Purpose
-
-The short-term goal of this project is to recreate the Redis API for development and testing purposes, ignoring thread safety and using Erlang Term Storage and no outside dependencies . This can be useful in development and testing environments because it removes the outside dependecy. The longer-term goal is to add thread safety and provide one package which can interact with ETS, DETS, and Redis itself using the same Redis-based API, so developers can switch freely when moving between development, test, and production environments, or when their needs and priorities change.
+This package recreates the Redis API for development and testing purposes, ignoring thread safety and using Erlang Term Storage and no outside dependencies. This can be useful in development and testing environments because it removes the outside dependecy.
 
 ## Usage
 

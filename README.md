@@ -17,39 +17,39 @@ Command behavior matches the [Redis command API](https://redis.io/commands/), us
 
   1. Using named command functions without bang:
 
-    ```elixir
-    iex(1)> {status, result} = FakeRedis.set(connection, ["key", "value"])
-    {:ok, "OK"}
-    iex(1)> {status, result} = FakeRedis.get(connection, "key")
-    {:ok, "value"}
-    ```
+```elixir
+iex(1)> {status, result} = FakeRedis.set(connection, ["key", "value"])
+{:ok, "OK"}
+iex(1)> {status, result} = FakeRedis.get(connection, "key")
+{:ok, "value"}
+```
 
   2. Using named command functions with bang:
 
-    ```elixir
-    iex(1)> result = FakeRedis.set!(connection, ["key", "value"])
-    "OK"
-    iex(1)> result = FakeRedis.get!(connection, "key")
-    "value"
-    ```
+```elixir
+iex(1)> result = FakeRedis.set!(connection, ["key", "value"])
+"OK"
+iex(1)> result = FakeRedis.get!(connection, "key")
+"value"
+```
 
   3. Using command/2 (without bang):
 
-    ```elixir
-    iex(1)> {status, result} = FakeRedis.command(connection, ~w(SET key value))
-    {:ok, "OK"}
-    iex(1)> {status, result} = FakeRedis.command(connection, ~w(GET key value))
-    {:ok, "value"}
-    ```
+```elixir
+iex(1)> {status, result} = FakeRedis.command(connection, ~w(SET key value))
+{:ok, "OK"}
+iex(1)> {status, result} = FakeRedis.command(connection, ~w(GET key value))
+{:ok, "value"}
+```
 
   4. Using command!/2 (with bang):
 
-    ```elixir
-    iex(1)> {status, result} = FakeRedis.command!(connection, ~w(SET key value))
-    "OK"
-    iex(1)> {status, result} = FakeRedis.command!(connection, ~w(GET key value))
-    "value"
-    ```
+```elixir
+iex(1)> {status, result} = FakeRedis.command!(connection, ~w(SET key value))
+"OK"
+iex(1)> {status, result} = FakeRedis.command!(connection, ~w(GET key value))
+"value"
+```
 
 Supported commands are `keys`, `set`, `setnx`, `setex`, `psetex`, `mset`, `msetnx`, `get`, `getset`, `mget`, `expire`, `expireat`, `pexpire`, `pexpireat`, `ttl`, `pttl`, `exists`, `del`, `persist`, `incr`, `incrby`, `decr`, `decrby`, `strlen`, `append`, `getrange`, `setrange`, `hget`, `hgetall`, `hmget`, `hkeys`, `hvals`, `hexists`, `hlen`, `hdel`, `hset`, `hsetnx`, `hincrby`, `lpushall`, `lpush`, `lpushx`, `rpush`, `rpushx`, `llen`, `lpop`, `rpop`, `rpoplpush`, `lset`, `lindex`, `linsert`, `ltrim`, `lrem`.
 
@@ -59,17 +59,17 @@ This package can be installed as:
 
   1. Add `fakeredis` to your list of dependencies in `mix.exs`:
 
-    ```elixir
-    def deps do
-      [{:fakeredis, "~> 0.1.0"}]
-    end
-    ```
+```elixir
+def deps do
+  [{:fakeredis, "~> 0.1.0"}]
+end
+```
 
   2. Ensure `fakeredis` is started before your application:
 
-    ```elixir
-    def application do
-      [applications: [:fakeredis]]
-    end
-    ```
+```elixir
+def application do
+  [applications: [:fakeredis]]
+end
+```
 

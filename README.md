@@ -61,7 +61,7 @@ This package can be installed as:
 
 ```elixir
 def deps do
-  [{:fakeredis, "~> 0.1.0"}]
+  [{:fakeredis, "~> 0.2.0"}]
 end
 ```
 

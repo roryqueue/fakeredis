@@ -56,7 +56,7 @@ defmodule FakeRedis do
   end
 
 
-  def start_link, do: start_link(random_name)
+  def start_link, do: start_link(random_name())
 
   def start_link(name, options \\ [:named_table, :public]) do
     conn =
@@ -211,7 +211,7 @@ defmodule FakeRedis do
     if value_list === [] do
       {:ok, nil}
     else
-      [{_testkey, {value, expire_time}} | tail] = value_list
+      [{_testkey, {value, expire_time}} | _tail] = value_list
 
       if expire_time < :os.system_time(:milli_seconds) do
         :ets.delete(conn, key)
@@ -227,7 +227,7 @@ defmodule FakeRedis do
     if value_list === [] do
       {:ok, {nil, nil}}
     else
-      [{_testkey, {value, expire_time}} | tail] = value_list
+      [{_testkey, {value, expire_time}} | _tail] = value_list
 
       if expire_time < :os.system_time(:milli_seconds) do
         :ets.delete(conn, key)
@@ -340,7 +340,7 @@ defmodule FakeRedis do
     if value_list === [] do
       {:ok, -2}
     else
-      [{key, {value, expire_time}} | _tail] = value_list
+      [{_key, {_value, expire_time}} | _tail] = value_list
       if is_nil(expire_time) do
         {:ok, -1}
       else

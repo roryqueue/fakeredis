@@ -10,6 +10,8 @@ defmodule FakeRedis do
     end
   end
 
+  def command!(conn, command, _opts), do: command!(conn, command)
+
   Enum.each(
     [
       :set, :setnx, :setex, :psetex, :mset, :msetnx, :get, :getset,
@@ -47,6 +49,9 @@ defmodule FakeRedis do
     raise "Could not match first word in command list to a fakeredis command"
   end
 
+  # redix uses a third argument to set the timeout
+  # we dont care about it, but add command/3 to match that interface
+  def command(conn, command, _opts), do: command(conn, command)
 
   defp random_name(length \\ 8) do
     :crypto.strong_rand_bytes(length)
@@ -56,7 +61,7 @@ defmodule FakeRedis do
   end
 
 
-  def start_link, do: start_link(random_name)
+  def start_link, do: start_link(random_name())
 
   def start_link(name, options \\ [:named_table, :public]) do
     conn =
@@ -211,7 +216,7 @@ defmodule FakeRedis do
     if value_list === [] do
       {:ok, nil}
     else
-      [{_testkey, {value, expire_time}} | tail] = value_list
+      [{_testkey, {value, expire_time}} | _tail] = value_list
 
       if expire_time < :os.system_time(:milli_seconds) do
         :ets.delete(conn, key)
@@ -227,7 +232,7 @@ defmodule FakeRedis do
     if value_list === [] do
       {:ok, {nil, nil}}
     else
-      [{_testkey, {value, expire_time}} | tail] = value_list
+      [{_testkey, {value, expire_time}} | _tail] = value_list
 
       if expire_time < :os.system_time(:milli_seconds) do
         :ets.delete(conn, key)
@@ -340,7 +345,7 @@ defmodule FakeRedis do
     if value_list === [] do
       {:ok, -2}
     else
-      [{key, {value, expire_time}} | _tail] = value_list
+      [{_key, {_value, expire_time}} | _tail] = value_list
       if is_nil(expire_time) do
         {:ok, -1}
       else

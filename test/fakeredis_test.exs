@@ -21,6 +21,32 @@ defmodule FakeRedisTest do
     assert nil === FakeRedis.get!(conn, empty_key)
   end
 
+  test "command/2 can be used with first argument string mapping to function name", %{conn: conn} do
+    test_key = "TESTKEY"
+    first_val = "FIRSTVAL"
+    second_val = "SECONDVAL"
+    empty_key = "EMPTYKEY"
+
+    assert "OK" = FakeRedis.command!(conn, ["SET", test_key, first_val])
+    assert first_val === FakeRedis.command!(conn, ["GET", test_key])
+    assert first_val === FakeRedis.command!(conn, ["GETSET", test_key, second_val])
+    assert second_val === FakeRedis.command!(conn, ["GET", test_key])
+    assert nil === FakeRedis.command!(conn, ["GET", empty_key])
+  end
+
+  test "command/3 does the exact same thing as command/2, with third argument discarded", %{conn: conn} do
+    test_key = "TESTKEY"
+    first_val = "FIRSTVAL"
+    second_val = "SECONDVAL"
+    empty_key = "EMPTYKEY"
+
+    assert "OK" = FakeRedis.command!(conn, ["SET", test_key, first_val], "blah")
+    assert first_val === FakeRedis.command!(conn, ["GET", test_key], %{ timeout: 100 })
+    assert first_val === FakeRedis.command!(conn, ["GETSET", test_key, second_val], 87.12)
+    assert second_val === FakeRedis.command!(conn, ["GET", test_key], ["garbage", "data"])
+    assert nil === FakeRedis.command!(conn, ["GET", empty_key], FakeRedis)
+  end
+
   test "set/2 with NX: setting only if does not exist", %{conn: conn} do
     first_key = "FIRSTKEY"
     second_key = "SECONDKEY"

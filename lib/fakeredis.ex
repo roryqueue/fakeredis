@@ -10,6 +10,8 @@ defmodule FakeRedis do
     end
   end
 
+  def command!(conn, command, _opts), do: command!(conn, command)
+
   Enum.each(
     [
       :set, :setnx, :setex, :psetex, :mset, :msetnx, :get, :getset,
@@ -47,6 +49,9 @@ defmodule FakeRedis do
     raise "Could not match first word in command list to a fakeredis command"
   end
 
+  # redix uses a third argument to set the timeout
+  # we dont care about it, but add command/3 to match that interface
+  def command(conn, command, _opts), do: command(conn, command)
 
   defp random_name(length \\ 8) do
     :crypto.strong_rand_bytes(length)

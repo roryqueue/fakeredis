@@ -6,7 +6,7 @@
 
 **FakeRedis recreates the Redis API using only native Erlang/Elixir features, especially [ETS](http://erlang.org/doc/man/ets.html#lookup_element-3).**
 
-This package recreates the Redis API for development and testing purposes, ignoring thread safety and using Erlang Term Storage and no outside dependencies. This can be useful in development and testing environments because it removes the outside dependecy.
+This package recreates the Redis API for development and testing purposes, ignoring thread safety and using Erlang Term Storage and no outside dependencies. This can be useful in development and testing environments because it removes the dependency on an actual Redis instance.
 
 ## Usage
 

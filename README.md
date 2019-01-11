@@ -13,7 +13,7 @@ This package recreates the Redis API for development and testing purposes, ignor
 Commands can be used either through command/2 or as functions. Per elixir standard, functions ending in a bang (!) will throw an exception is something goes wrong, while those without will return standard :ok/:error format:
 
 
-Command behavior matches the [Redis command API](https://redis.io/commands/), using elixir list, map, and bitstring types to replace the Redis array, hash, and string types repectively.
+Command behavior matches the [Redis command API](https://redis.io/commands/), using elixir list, map, and bitstring types to replace the Redis array, hash, and string types respectively.
 
   1. Using named command functions without bang:
 

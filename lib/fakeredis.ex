@@ -24,8 +24,8 @@ defmodule FakeRedis do
     ], fn (name) ->
       commandified_name = name |> Atom.to_string |> String.upcase
 
-      # point each all of command/2 to the function named by
-      # the first position in the second arg wordlist
+      # point calls to command/2 to the function specified with
+      # the first string in the wordlist passed as the second arg
       def command(conn, [unquote(commandified_name) | command_args]) do
         unquote(name)(conn, command_args)
       end

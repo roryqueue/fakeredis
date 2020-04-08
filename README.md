@@ -45,9 +45,9 @@ iex(1)> {status, result} = FakeRedis.command(connection, ~w(GET key value))
   4. Using command!/2 (with bang):
 
 ```elixir
-iex(1)> {status, result} = FakeRedis.command!(connection, ~w(SET key value))
+iex(1)> result = FakeRedis.command!(connection, ~w(SET key value))
 "OK"
-iex(1)> {status, result} = FakeRedis.command!(connection, ~w(GET key value))
+iex(1)> result = FakeRedis.command!(connection, ~w(GET key value))
 "value"
 ```
 

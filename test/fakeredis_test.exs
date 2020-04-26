@@ -498,6 +498,17 @@ defmodule FakeRedisTest do
     assert 0 === FakeRedis.hlen!(conn, empty_key)
   end
 
+  test "del/2: delete an entry", %{conn: conn} do
+    test_key = "TESTKEY"
+    test_val = "1"
+    empty_key = "EMPTYKEY"
+
+    assert "OK" = FakeRedis.set!(conn, [test_key, test_val])
+    assert 1 === FakeRedis.del!(conn, [test_key])
+    assert nil === FakeRedis.get!(conn, [test_key])
+    assert 0 === FakeRedis.del!(conn, empty_key)
+  end
+
   test "hdel/2: delete a subkey of a hash entry", %{conn: conn} do
     test_key = "TESTKEY"
     test_map = %{

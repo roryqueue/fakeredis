@@ -376,7 +376,7 @@ defmodule FakeRedis do
   def del(conn, keys, counter \\ 0)
   def del(_conn, [], counter), do: {:ok, counter}
 
-  def del(conn, [next_key, remaining_keys], counter) do
+  def del(conn, [next_key | remaining_keys], counter) do
     key_exists = :ets.member(conn, next_key)
     :ets.delete(conn, next_key)
     if key_exists do

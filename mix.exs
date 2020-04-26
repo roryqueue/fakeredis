@@ -3,8 +3,8 @@ defmodule FakeRedis.Mixfile do
 
   def project do
     [app: :fakeredis,
-     version: "0.2.0",
-     elixir: "~> 1.3",
+     version: "0.2.1",
+     elixir: "~> 1.10",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      deps: deps(),
